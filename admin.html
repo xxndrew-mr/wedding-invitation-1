@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel Admin — Undangan Andre &amp; Sarah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Archivo:wght@300;400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- ============ SKIP LINK ============ -->
+<a class="skip-link" href="#mainContent">Lompat ke konten</a>
+
+<!-- ================================================================
+     STATUS BAR (aria-live) — pesan sukses/gagal global
+     ================================================================ -->
+<div id="statusBar" class="statusbar" role="status" aria-live="polite" hidden>
+  <span id="statusText"></span>
+  <button type="button" id="statusClose" class="statusbar__close" aria-label="Tutup pesan">&times;</button>
+</div>
+
+<!-- ================================================================
+     TAMPILAN LOGIN
+     ================================================================ -->
+<section id="loginView" class="login" aria-labelledby="loginTitle">
+  <div class="login__card">
+    <p class="brand-mark">Andre <span class="brand-amp">&amp;</span> Sarah</p>
+    <p class="eyebrow">Panel Admin</p>
+    <h1 id="loginTitle" class="login__title">Masuk untuk mengelola undangan</h1>
+
+    <!-- Peringatan bila Supabase belum dikonfigurasi -->
+    <div id="setupNotice" class="notice notice--warn" hidden>
+      <strong>Cloud belum dikonfigurasi.</strong>
+      <p>Isi <code>js/supabase-config.js</code> dengan <code>url</code> dan <code>anonKey</code> project Supabase Anda terlebih dahulu, lalu muat ulang halaman ini. Selama belum diisi, panel admin tidak dapat login dan situs undangan tetap memakai data bawaan dari <code>js/config.js</code>.</p>
+    </div>
+
+    <form id="loginForm" class="login__form" novalidate>
+      <div class="field">
+        <label for="loginEmail">Email admin</label>
+        <input type="email" id="loginEmail" name="email" autocomplete="username"
+               inputmode="email" placeholder="admin@contoh.com" required>
+      </div>
+      <div class="field">
+        <label for="loginPassword">Kata sandi</label>
+        <input type="password" id="loginPassword" name="password"
+               autocomplete="current-password" placeholder="••••••••" required>
+      </div>
+      <p id="loginError" class="field-error" role="alert" hidden></p>
+      <button type="submit" id="loginSubmit" class="btn btn--solid btn--block">Masuk</button>
+    </form>
+
+    <p class="login__hint">
+      Akun admin dibuat manual dari Dashboard Supabase. Pastikan opsi
+      <em>Allow new users to sign up</em> sudah dimatikan di pengaturan Authentication.
+    </p>
+  </div>
+</section>
+
+<!-- ================================================================
+     APLIKASI (setelah login)
+     ================================================================ -->
+<div id="appView" hidden>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <p class="topbar__brand">Andre <span class="brand-amp">&amp;</span> Sarah <span class="topbar__tag">Admin</span></p>
+      <div class="topbar__actions">
+        <span id="userBadge" class="topbar__user" aria-live="polite"></span>
+        <button type="button" id="logoutBtn" class="btn btn--ghost btn--sm">Keluar</button>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Bagian panel admin">
+      <button type="button" class="tab is-active" id="tabEditorBtn"
+              role="tab" aria-selected="true" aria-controls="editorTab">Editor Undangan</button>
+      <button type="button" class="tab" id="tabRsvpBtn"
+              role="tab" aria-selected="false" aria-controls="rsvpTab">Daftar Kehadiran</button>
+    </nav>
+  </header>
+
+  <main id="mainContent" class="wrap">
+
+    <!-- ============ TAB: EDITOR ============ -->
+    <section id="editorTab" role="tabpanel" aria-labelledby="tabEditorBtn" tabindex="-1">
+
+      <div class="toolbar">
+        <div class="toolbar__info">
+          <span id="sourceBadge" class="source-badge">Memuat…</span>
+          <span class="toolbar__hint">Ubah kolom lalu simpan ke cloud. Gunakan Pratinjau untuk melihat hasil sebelum menyimpan.</span>
+        </div>
+        <div class="toolbar__buttons">
+          <button type="button" id="reloadBtn" class="btn btn--ghost btn--sm">Muat ulang</button>
+          <button type="button" id="previewBtn" class="btn btn--ghost btn--sm">Pratinjau Undangan</button>
+          <button type="button" id="saveBtn" class="btn btn--solid btn--sm">Simpan ke Cloud</button>
+        </div>
+      </div>
+
+      <form id="editorForm" novalidate>
+
+        <!-- MEMPELAI PRIA -->
+        <fieldset class="card">
+          <legend class="card__title">Mempelai Pria</legend>
+          <div class="grid grid--2">
+            <div class="field">
+              <label for="gName">Nama lengkap</label>
+              <input type="text" id="gName" data-path="groom.name">
+            </div>
+            <div class="field">
+              <label for="gShort">Nama panggilan</label>
+              <input type="text" id="gShort" data-path="groom.shortName">
+            </div>
+          </div>
+          <div class="field">
+            <label for="gParents">Orang tua</label>
+            <input type="text" id="gParents" data-path="groom.parents">
+          </div>
+        </fieldset>
+
+        <!-- MEMPELAI WANITA -->
+        <fieldset class="card">
+          <legend class="card__title">Mempelai Wanita</legend>
+          <div class="grid grid--2">
+            <div class="field">
+              <label for="bName">Nama lengkap</label>
+              <input type="text" id="bName" data-path="bride.name">
+            </div>
+            <div class="field">
+              <label for="bShort">Nama panggilan</label>
+              <input type="text" id="bShort" data-path="bride.shortName">
+            </div>
+          </div>
+          <div class="field">
+            <label for="bParents">Orang tua</label>
+            <input type="text" id="bParents" data-path="bride.parents">
+          </div>
+        </fieldset>
+
+        <!-- TANGGAL -->
+        <fieldset class="card">
+          <legend class="card__title">Tanggal Pernikahan</legend>
+          <div class="grid grid--2">
+            <div class="field">
+              <label for="dDisplay">Tampilan tanggal</label>
+              <input type="text" id="dDisplay" data-path="date.display" placeholder="Sabtu, 12 Desember 2026">
+            </div>
+            <div class="field">
+              <label for="dNumeric">Tanggal numerik</label>
+              <input type="text" id="dNumeric" data-path="date.numeric" placeholder="12 . 12 . 2026">
+            </div>
+          </div>
+          <div class="field">
+            <label for="dIso">Target hitung mundur (WIB)</label>
+            <input type="datetime-local" id="dIso">
+            <p class="field-help">Waktu acara dalam zona WIB (UTC+7). Dipakai untuk hitung mundur di halaman utama.</p>
+          </div>
+        </fieldset>
+
+        <!-- ACARA (array) -->
+        <fieldset class="card">
+          <legend class="card__title">Rangkaian Acara</legend>
+          <p class="field-help">Contoh: Akad Nikah, Resepsi. Kolom dresscode boleh dikosongkan.</p>
+          <div id="eventsList" class="repeater"></div>
+          <button type="button" id="addEventBtn" class="btn btn--dashed btn--block">+ Tambah acara</button>
+        </fieldset>
+
+        <!-- VENUE -->
+        <fieldset class="card">
+          <legend class="card__title">Lokasi</legend>
+          <div class="field">
+            <label for="vName">Nama tempat</label>
+            <input type="text" id="vName" data-path="venue.name">
+          </div>
+          <div class="field">
+            <label for="vAddress">Alamat</label>
+            <input type="text" id="vAddress" data-path="venue.address">
+          </div>
+          <div class="field">
+            <label for="vMaps">Tautan Google Maps</label>
+            <input type="url" id="vMaps" data-path="venue.maps" placeholder="https://maps.google.com/...">
+            <p class="field-help">Gunakan share-link dari pin lokasi pasti. Selama nama/alamat masih placeholder, tombol lokasi disembunyikan di halaman tamu.</p>
+          </div>
+        </fieldset>
+
+        <!-- CALENDAR -->
+        <fieldset class="card">
+          <legend class="card__title">Tambah ke Kalender (Google Calendar)</legend>
+          <div class="field">
+            <label for="cTitle">Judul acara</label>
+            <input type="text" id="cTitle" data-path="calendar.title">
+          </div>
+          <div class="grid grid--2">
+            <div class="field">
+              <label for="cStart">Mulai (UTC)</label>
+              <input type="text" id="cStart" data-path="calendar.startUTC" class="mono"
+                     placeholder="20261212T010000Z" pattern="\d{8}T\d{6}Z">
+              <p class="field-help">Format: YYYYMMDDTHHMMSSZ (waktu UTC).</p>
+            </div>
+            <div class="field">
+              <label for="cEnd">Selesai (UTC)</label>
+              <input type="text" id="cEnd" data-path="calendar.endUTC" class="mono"
+                     placeholder="20261212T070000Z" pattern="\d{8}T\d{6}Z">
+              <p class="field-help">08.00 WIB = 01:00 UTC (kurangi 7 jam).</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="cDetails">Detail</label>
+            <textarea id="cDetails" data-path="calendar.details" rows="3"></textarea>
+          </div>
+          <div class="field">
+            <label for="cLocation">Lokasi (teks kalender)</label>
+            <input type="text" id="cLocation" data-path="calendar.location">
+          </div>
+        </fieldset>
+
+        <!-- QUOTE -->
+        <fieldset class="card">
+          <legend class="card__title">Kutipan</legend>
+          <div class="field">
+            <label for="qText">Teks kutipan</label>
+            <textarea id="qText" data-path="quote.text" rows="4"></textarea>
+          </div>
+          <div class="field">
+            <label for="qSource">Sumber</label>
+            <input type="text" id="qSource" data-path="quote.source" placeholder="— QS. Ar-Rum: 21">
+          </div>
+        </fieldset>
+
+        <!-- UMUM -->
+        <fieldset class="card">
+          <legend class="card__title">Pengaturan Umum</legend>
+          <div class="grid grid--2">
+            <div class="field">
+              <label for="guestFallback">Sapaan tamu bawaan</label>
+              <input type="text" id="guestFallback" data-path="guestFallback" placeholder="Tamu Undangan">
+            </div>
+            <div class="field">
+              <label for="waNumber">Nomor WhatsApp RSVP</label>
+              <input type="text" id="waNumber" data-path="rsvp.whatsapp" inputmode="numeric"
+                     placeholder="6281234567890">
+              <p class="field-help">Format internasional tanpa tanda +. Kosongkan bila tidak dipakai.</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="storageKey">Kunci penyimpanan RSVP lokal</label>
+            <input type="text" id="storageKey" data-path="storageKey" class="mono">
+            <p class="field-help">Kunci localStorage untuk ucapan tamu di sisi klien. Ubah hanya bila paham dampaknya.</p>
+          </div>
+        </fieldset>
+
+        <!-- ACCOUNTS (array) -->
+        <fieldset class="card">
+          <legend class="card__title">Amplop Digital (Rekening)</legend>
+          <p class="field-help">Selama nomor masih pola contoh (1234567890 / 081234567890), section amplop disembunyikan di halaman tamu.</p>
+          <div id="accountsList" class="repeater"></div>
+          <button type="button" id="addAccountBtn" class="btn btn--dashed btn--block">+ Tambah rekening</button>
+        </fieldset>
+
+        <!-- SEED WISHES (array) -->
+        <fieldset class="card">
+          <legend class="card__title">Ucapan Awal (Seed)</legend>
+          <p class="field-help">Ucapan contoh yang tampil sebelum ada RSVP tamu. Boleh diedit atau dihapus.</p>
+          <div id="wishesList" class="repeater"></div>
+          <button type="button" id="addWishBtn" class="btn btn--dashed btn--block">+ Tambah ucapan</button>
+        </fieldset>
+
+      </form>
+
+      <div class="toolbar toolbar--bottom">
+        <div class="toolbar__buttons">
+          <button type="button" id="previewBtn2" class="btn btn--ghost">Pratinjau Undangan</button>
+          <button type="button" id="saveBtn2" class="btn btn--solid">Simpan ke Cloud</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: RSVP ============ -->
+    <section id="rsvpTab" role="tabpanel" aria-labelledby="tabRsvpBtn" tabindex="-1" hidden>
+
+      <div class="toolbar">
+        <div class="toolbar__info">
+          <span class="toolbar__hint">Data kehadiran yang dikirim tamu melalui halaman undangan.</span>
+        </div>
+        <div class="toolbar__buttons">
+          <button type="button" id="rsvpReloadBtn" class="btn btn--ghost btn--sm">Muat ulang</button>
+          <button type="button" id="rsvpCsvBtn" class="btn btn--solid btn--sm">Unduh CSV</button>
+        </div>
+      </div>
+
+      <div id="rsvpSummary" class="summary" hidden>
+        <div class="summary__item">
+          <span class="summary__num" id="sumEntries">0</span>
+          <span class="summary__label">Entri</span>
+        </div>
+        <div class="summary__item">
+          <span class="summary__num" id="sumAttend">0</span>
+          <span class="summary__label">Menyatakan Hadir</span>
+        </div>
+        <div class="summary__item">
+          <span class="summary__num" id="sumGuests">0</span>
+          <span class="summary__label">Total Tamu (Hadir)</span>
+        </div>
+      </div>
+
+      <p id="rsvpEmpty" class="empty-state" hidden>Belum ada data kehadiran.</p>
+      <p id="rsvpLoading" class="empty-state">Memuat data…</p>
+
+      <div class="table-scroll">
+        <table id="rsvpTable" class="table" hidden>
+          <thead>
+            <tr>
+              <th scope="col">Nama</th>
+              <th scope="col">Kehadiran</th>
+              <th scope="col">Jumlah</th>
+              <th scope="col">Pesan</th>
+              <th scope="col">Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="rsvpBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <p>Panel admin undangan — data disimpan di Supabase, dilindungi Row Level Security.</p>
+  </footer>
+</div>
+
+<!-- ============ TEMPLATE BARIS ARRAY ============ -->
+<template id="tplEvent">
+  <div class="repeater__row" data-row="event">
+    <div class="repeater__head">
+      <span class="repeater__idx"></span>
+      <button type="button" class="row-del" data-del aria-label="Hapus acara">Hapus</button>
+    </div>
+    <div class="grid grid--2">
+      <div class="field">
+        <label>Nama acara</label>
+        <input type="text" data-field="name" placeholder="Akad Nikah">
+      </div>
+      <div class="field">
+        <label>Waktu</label>
+        <input type="text" data-field="time" placeholder="08.00 – 10.00 WIB">
+      </div>
+    </div>
+    <div class="field">
+      <label>Dresscode (opsional)</label>
+      <input type="text" data-field="dresscode" placeholder="Black Tie · Nuansa Emerald">
+    </div>
+  </div>
+</template>
+
+<template id="tplAccount">
+  <div class="repeater__row" data-row="account">
+    <div class="repeater__head">
+      <span class="repeater__idx"></span>
+      <button type="button" class="row-del" data-del aria-label="Hapus rekening">Hapus</button>
+    </div>
+    <div class="grid grid--2">
+      <div class="field">
+        <label>Bank / Layanan</label>
+        <input type="text" data-field="bank" placeholder="BCA">
+      </div>
+      <div class="field">
+        <label>Nomor (angka murni)</label>
+        <input type="text" data-field="number" class="mono" inputmode="numeric" placeholder="1234567890">
+      </div>
+    </div>
+    <div class="grid grid--2">
+      <div class="field">
+        <label>Tampilan nomor</label>
+        <input type="text" data-field="display" class="mono" placeholder="1234 5678 90">
+      </div>
+      <div class="field">
+        <label>Atas nama</label>
+        <input type="text" data-field="holder" placeholder="a.n. Andre Pratama">
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tplWish">
+  <div class="repeater__row" data-row="wish">
+    <div class="repeater__head">
+      <span class="repeater__idx"></span>
+      <button type="button" class="row-del" data-del aria-label="Hapus ucapan">Hapus</button>
+    </div>
+    <div class="grid grid--3">
+      <div class="field">
+        <label>Nama</label>
+        <input type="text" data-field="name" placeholder="Rizky Ananda">
+      </div>
+      <div class="field">
+        <label>Kehadiran</label>
+        <input type="text" data-field="attendance" placeholder="Hadir">
+      </div>
+      <div class="field">
+        <label>Jumlah tamu</label>
+        <input type="number" data-field="guests" min="0" max="20" step="1" placeholder="2">
+      </div>
+    </div>
+    <div class="field">
+      <label>Pesan</label>
+      <textarea data-field="message" rows="2" placeholder="Selamat menempuh hidup baru…"></textarea>
+    </div>
+    <div class="field field--narrow">
+      <label>Jam yang lalu (hoursAgo)</label>
+      <input type="number" data-field="hoursAgo" min="0" step="1" placeholder="2">
+    </div>
+  </div>
+</template>
+
+<script src="js/config.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

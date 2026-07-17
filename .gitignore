@@ -1,0 +1,17 @@
+# ================================================================
+#  Jangan pernah commit kredensial / rahasia.
+# ----------------------------------------------------------------
+#  .mcp.json memuat API key MCP (mis. X-Goog-Api-Key) untuk sesi
+#  desain di Claude Code — BUKAN untuk di-publish. .claude/ juga
+#  bisa berisi setelan lokal. Bila key sudah pernah ter-commit di
+#  suatu tempat, anggap BOCOR dan rotasi segera.
+# ================================================================
+.mcp.json
+.claude/settings.local.json
+.claude/
+.vscode/
+
+# OS / editor cruft
+Thumbs.db
+.DS_Store
+*.log
