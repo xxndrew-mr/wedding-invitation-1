@@ -181,6 +181,61 @@ values (1, '{}'::jsonb)
 on conflict (id) do nothing;
 
 -- ================================================================
+--  7. STORAGE  — bucket foto publik 'photos' (untuk fitur upload foto)
+--     ------------------------------------------------------------
+--     Bucket ini menampung foto mempelai, sampul, & galeri yang
+--     diunggah admin lewat panel. 'public = true' berarti FILE-nya
+--     bisa DIBACA siapa saja lewat URL publik — memang perlu, karena
+--     tamu undangan (anon) harus bisa menampilkan foto tanpa login.
+--
+--     Keamanan: hanya user 'authenticated' (admin) yang boleh
+--     unggah/ubah/hapus; publik hanya boleh membaca (SELECT).
+--     Dijaga oleh policy RLS di storage.objects di bawah.
+--
+--     Idempoten: ON CONFLICT DO NOTHING + drop-then-create policy,
+--     aman dijalankan berulang.
+-- ================================================================
+insert into storage.buckets (id, name, public)
+values ('photos', 'photos', true)
+on conflict (id) do nothing;
+
+-- --- Policy storage.objects khusus bucket 'photos' ---
+-- SELECT (baca) : publik — anon + authenticated. File foto bisa dilihat
+--                 semua tamu lewat URL publik.
+drop policy if exists photos_public_read on storage.objects;
+create policy photos_public_read
+  on storage.objects
+  for select
+  to anon, authenticated
+  using (bucket_id = 'photos');
+
+-- INSERT (unggah) : hanya authenticated (admin).
+drop policy if exists photos_auth_insert on storage.objects;
+create policy photos_auth_insert
+  on storage.objects
+  for insert
+  to authenticated
+  with check (bucket_id = 'photos');
+
+-- UPDATE (ganti/upsert) : hanya authenticated (admin).
+drop policy if exists photos_auth_update on storage.objects;
+create policy photos_auth_update
+  on storage.objects
+  for update
+  to authenticated
+  using (bucket_id = 'photos')
+  with check (bucket_id = 'photos');
+
+-- DELETE (hapus) : hanya authenticated (admin).
+drop policy if exists photos_auth_delete on storage.objects;
+create policy photos_auth_delete
+  on storage.objects
+  for delete
+  to authenticated
+  using (bucket_id = 'photos');
+
+
+-- ================================================================
 --  SELESAI. Langkah berikut:
 --   1) Authentication -> MATIKAN "Allow new users to sign up".
 --   2) Authentication -> Users -> Add user  (buat akun admin manual).

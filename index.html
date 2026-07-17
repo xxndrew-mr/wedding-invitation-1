@@ -162,12 +162,12 @@
       <svg class="cover-mono" aria-hidden="true"><use href="#monogram"/></svg>
       <p class="eyebrow cover-fade cf-1">The Wedding Of</p>
       <div class="cover-names cover-fade cf-2">
-        <span class="name name--groom">Hafif</span>
+        <span class="name name--groom" data-bind="groom.shortName">Hafif</span>
         <span class="sr-only"> dan </span>
         <span class="cover-amp script" aria-hidden="true">&amp;</span>
-        <span class="name name--bride">Aisah</span>
+        <span class="name name--bride" data-bind="bride.shortName">Aisah</span>
       </div>
-      <p class="cover-date cover-fade cf-3">Sabtu &#183; 12 Desember 2026</p>
+      <p class="cover-date cover-fade cf-3" data-bind="date.display">Sabtu &#183; 12 Desember 2026</p>
       <div class="cover-vline cover-fade cf-4" aria-hidden="true"></div>
       <div class="guest-chip cover-fade cf-5">
         <svg class="chip-corner chip-corner--tl" aria-hidden="true"><use href="#corner"/></svg>
@@ -197,11 +197,11 @@
       <svg class="cover-mono"><use href="#monogram"/></svg>
       <p class="eyebrow cover-fade cf-1">The Wedding Of</p>
       <div class="cover-names cover-fade cf-2">
-        <span class="name name--groom">Hafif</span>
+        <span class="name name--groom" data-bind="groom.shortName">Hafif</span>
         <span class="cover-amp script">&amp;</span>
-        <span class="name name--bride">Aisah</span>
+        <span class="name name--bride" data-bind="bride.shortName">Aisah</span>
       </div>
-      <p class="cover-date cover-fade cf-3">Sabtu &#183; 12 Desember 2026</p>
+      <p class="cover-date cover-fade cf-3" data-bind="date.display">Sabtu &#183; 12 Desember 2026</p>
       <div class="cover-vline cover-fade cf-4"></div>
       <div class="guest-chip cover-fade cf-5">
         <svg class="chip-corner chip-corner--tl"><use href="#corner"/></svg>
@@ -227,10 +227,10 @@
     <div class="hero-content">
       <p class="eyebrow center" style="margin-bottom:20px">No. I &#8212; The Wedding Of</p>
       <h1 id="hero-title" class="hero-names">
-        <span class="word word--andre">Hafif</span>
+        <span class="word word--andre" data-bind="groom.shortName">Hafif</span>
         <span class="sr-only"> dan </span>
         <span class="hero-amp" aria-hidden="true">&amp;</span>
-        <span class="word word--sarah">Aisah</span>
+        <span class="word word--sarah" data-bind="bride.shortName">Aisah</span>
       </h1>
       <p class="hero-date-num" data-bind="date.numeric">12 . 12 . 2026</p>
       <p class="hero-sub" data-bind="date.display">Sabtu, 12 Desember 2026</p>
@@ -599,7 +599,7 @@
         <p class="opening-para" style="margin-top:0">Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir untuk memberikan doa restu kepada kedua mempelai.</p>
         <p class="salam-fraunces" style="font-size:22px; margin-top:26px">Wassalamu&#8217;alaikum Warahmatullahi Wabarakatuh</p>
         <p class="eyebrow" style="margin-top:34px">Kami yang berbahagia,</p>
-        <p class="closing-names">Hafif<span class="sr-only"> dan </span><span class="amp" aria-hidden="true">&amp;</span>Aisah</p>
+        <p class="closing-names"><span data-bind="groom.shortName">Hafif</span><span class="sr-only"> dan </span><span class="amp" aria-hidden="true">&amp;</span><span data-bind="bride.shortName">Aisah</span></p>
         <svg class="closing-mono draw" aria-hidden="true"><use href="#monogram"/></svg>
         <div class="divider-wrap"><svg class="draw" aria-hidden="true"><use href="#divider"/></svg></div>
       </div>

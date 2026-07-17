@@ -229,6 +229,73 @@
           </div>
         </fieldset>
 
+        <!-- FOTO MEMPELAI & COVER -->
+        <fieldset class="card">
+          <legend class="card__title">Foto Mempelai &amp; Cover <span class="card__tag">Opsional</span></legend>
+          <p class="field-help">Unggah foto (maks. 3 MB) atau tempel tautan gambar. Bila dikosongkan, undangan memakai ilustrasi bawaan. Foto tersimpan online setelah Anda menekan Simpan Perubahan.</p>
+
+          <div class="photo-slot" data-photo-slot="groom">
+            <label class="photo-slot__label" for="photoGroomUrl">Foto Mempelai Pria</label>
+            <div class="photo-slot__body">
+              <img class="photo-preview" data-photo-preview alt="Pratinjau foto mempelai pria" hidden>
+              <div class="photo-slot__controls">
+                <input type="url" id="photoGroomUrl" data-photo-url placeholder="https://… atau tekan Unggah Foto">
+                <div class="photo-slot__actions">
+                  <button type="button" class="btn btn--ghost btn--sm" data-photo-upload>Unggah Foto</button>
+                  <input type="file" accept="image/*" data-photo-input hidden tabindex="-1" aria-hidden="true">
+                  <span class="photo-slot__status" data-photo-status role="status" aria-live="polite"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="photo-slot" data-photo-slot="bride">
+            <label class="photo-slot__label" for="photoBrideUrl">Foto Mempelai Wanita</label>
+            <div class="photo-slot__body">
+              <img class="photo-preview" data-photo-preview alt="Pratinjau foto mempelai wanita" hidden>
+              <div class="photo-slot__controls">
+                <input type="url" id="photoBrideUrl" data-photo-url placeholder="https://… atau tekan Unggah Foto">
+                <div class="photo-slot__actions">
+                  <button type="button" class="btn btn--ghost btn--sm" data-photo-upload>Unggah Foto</button>
+                  <input type="file" accept="image/*" data-photo-input hidden tabindex="-1" aria-hidden="true">
+                  <span class="photo-slot__status" data-photo-status role="status" aria-live="polite"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="photo-slot" data-photo-slot="cover">
+            <label class="photo-slot__label" for="photoCoverUrl">Foto Cover / Sampul</label>
+            <div class="photo-slot__body">
+              <img class="photo-preview" data-photo-preview alt="Pratinjau foto cover" hidden>
+              <div class="photo-slot__controls">
+                <input type="url" id="photoCoverUrl" data-photo-url placeholder="https://… atau tekan Unggah Foto">
+                <div class="photo-slot__actions">
+                  <button type="button" class="btn btn--ghost btn--sm" data-photo-upload>Unggah Foto</button>
+                  <input type="file" accept="image/*" data-photo-input hidden tabindex="-1" aria-hidden="true">
+                  <span class="photo-slot__status" data-photo-status role="status" aria-live="polite"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- GALERI FOTO (array) -->
+        <fieldset class="card">
+          <legend class="card__title">Galeri Foto <span class="card__tag">Opsional</span></legend>
+          <p class="field-help">Foto-foto ini akan tampil di bagian Galeri undangan. Unggah foto (maks. 3 MB) atau tempel tautan gambar. Bila kosong, bagian Galeri memakai ornamen bawaan.</p>
+          <div id="galleryList" class="repeater"></div>
+          <button type="button" id="addGalleryBtn" class="btn btn--dashed btn--block">+ Tambah foto</button>
+        </fieldset>
+
+        <!-- KISAH / PERJALANAN (array) -->
+        <fieldset class="card">
+          <legend class="card__title">Kisah / Perjalanan</legend>
+          <p class="field-help">Kisah perjalanan Anda berdua yang tampil di bagian Perjalanan undangan. Umumnya 4 bab (mis. Pertama Bertemu, Menjadi Sahabat, Lamaran, Menikah). Boleh ditambah, diedit, atau dikurangi.</p>
+          <div id="storyList" class="repeater"></div>
+          <button type="button" id="addStoryBtn" class="btn btn--dashed btn--block">+ Tambah bab</button>
+        </fieldset>
+
         <!-- UMUM -->
         <fieldset class="card">
           <legend class="card__title">Pengaturan Umum</legend>
@@ -452,6 +519,52 @@
     <!-- hoursAgo teknis: disembunyikan dari mempelai; nilainya tetap terjaga
          dari data lama (lihat collectWishes di admin.js). -->
     <input type="hidden" data-field="hoursAgo">
+  </div>
+</template>
+
+<template id="tplGallery">
+  <div class="repeater__row" data-row="gallery">
+    <div class="repeater__head">
+      <span class="repeater__idx"></span>
+      <button type="button" class="row-del" data-del aria-label="Hapus foto">Hapus</button>
+    </div>
+    <div class="photo-slot__body">
+      <img class="photo-preview" data-photo-preview alt="Pratinjau foto galeri" hidden>
+      <div class="photo-slot__controls">
+        <div class="field">
+          <label>Tautan foto</label>
+          <input type="url" data-photo-url placeholder="https://… atau tekan Unggah Foto">
+        </div>
+        <div class="photo-slot__actions">
+          <button type="button" class="btn btn--ghost btn--sm" data-photo-upload>Unggah Foto</button>
+          <input type="file" accept="image/*" data-photo-input hidden tabindex="-1" aria-hidden="true">
+          <span class="photo-slot__status" data-photo-status role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tplStory">
+  <div class="repeater__row" data-row="story">
+    <div class="repeater__head">
+      <span class="repeater__idx"></span>
+      <button type="button" class="row-del" data-del aria-label="Hapus bab">Hapus</button>
+    </div>
+    <div class="grid grid--2">
+      <div class="field">
+        <label>Tahun / Label</label>
+        <input type="text" data-field="year" placeholder="2019 — Bab Pertama">
+      </div>
+      <div class="field">
+        <label>Judul</label>
+        <input type="text" data-field="title" placeholder="Pertama Bertemu">
+      </div>
+    </div>
+    <div class="field">
+      <label>Cerita</label>
+      <textarea data-field="text" rows="3" placeholder="Ceritakan momen ini dengan hangat…"></textarea>
+    </div>
   </div>
 </template>
 

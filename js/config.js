@@ -45,6 +45,42 @@ window.WEDDING_CONFIG = {
     text: '“Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang. Sungguh, pada yang demikian itu benar-benar terdapat tanda-tanda (kebesaran Allah) bagi kaum yang berpikir.”',
     source: '— QS. Ar-Rum: 21'
   },
+  /* FOTO — semua nilai berupa string URL publik (hasil upload ke Supabase
+     Storage bucket 'photos', atau URL gambar mana pun). Kosong = renderer
+     memakai ornamen/ilustrasi bawaan (fallback aman). 'gallery' = array URL.
+     Undangan lama tanpa field ini tetap jalan: renderer harus fallback. */
+  photos: {
+    cover: '',      /* foto sampul / hero (opsional) */
+    groom: '',      /* potret mempelai pria (opsional) */
+    bride: '',      /* potret mempelai wanita (opsional) */
+    gallery: []     /* daftar URL foto galeri; kosong = pakai ornamen */
+  },
+  /* KISAH — "Empat Bab Perjalanan". Dipindahkan verbatim dari markup
+     hardcode di index.html (section No. VI). Setiap item:
+       { year: label tahun+bab, title: judul bab, text: narasi }.
+     Renderer & CMS harus fallback aman bila array kosong/hilang. */
+  story: [
+    {
+      year: '2019 — Bab Pertama',
+      title: 'Pertama Bertemu',
+      text: 'Di koridor kampus yang sama, sebuah perkenalan sederhana di sela kegiatan organisasi menjadi halaman pertama dari kisah yang tidak pernah kami duga akan sepanjang ini.'
+    },
+    {
+      year: '2021 — Bab Kedua',
+      title: 'Menjadi Sahabat',
+      text: 'Dari rekan diskusi menjadi tempat pulang cerita. Kami tumbuh bersama dalam persahabatan yang tenang, saling menguatkan di masa-masa yang tidak mudah.'
+    },
+    {
+      year: '2025 — Bab Ketiga',
+      title: 'Lamaran',
+      text: 'Dengan restu kedua keluarga, Hafif datang membawa niat yang tulus. Sebuah jawaban “ya” mengubah persahabatan panjang menjadi janji yang serius.'
+    },
+    {
+      year: '2026 — Bab Keempat',
+      title: 'Menikah',
+      text: 'Dan sampailah kami di halaman ini — 12 Desember 2026. Dengan izin Allah, kami mengikat janji suci di hadapan keluarga dan sahabat terkasih.'
+    }
+  ],
   guestFallback: 'Tamu Undangan',
   /* PENTING: nomor di bawah ini masih PLACEHOLDER (pola 1-2-3-4).
      WAJIB diganti dengan nomor rekening & DANA asli sebelum undangan disebar.

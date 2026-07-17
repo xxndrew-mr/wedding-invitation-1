@@ -1,4 +1,4 @@
-# Undangan Pernikahan Digital — Andre & Sarah
+# Undangan Pernikahan Digital — Hafif & Aisah
 
 Website undangan pernikahan single-page bergaya **"Nocturne Éditorial"** (editorial mewah:
 hijau midnight, emas champagne, tipografi Fraunces, ornamen SVG garis yang "menggambar

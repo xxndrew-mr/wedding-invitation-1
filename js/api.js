@@ -314,6 +314,112 @@
     });
   }
 
+  /* ================================================================
+     STORAGE — unggah foto ke bucket publik 'photos'
+     ----------------------------------------------------------------
+     Zero-dependency: POST langsung ke Storage REST API Supabase,
+     TANPA SDK. Perlu sesi admin (authenticated) — publik hanya boleh
+     membaca. Mengembalikan { ok:true, url } (URL publik siap pakai di
+     <img src>) atau { ok:false, error }. TIDAK PERNAH melempar.
+     ================================================================ */
+  var PHOTO_BUCKET = 'photos';
+  var MAX_PHOTO_BYTES = 3 * 1024 * 1024; /* 3 MB default; bisa dinaikkan via opts.maxBytes */
+
+  /* Bersihkan nama file jadi segmen path aman: huruf/angka/titik/strip.
+     Cegah traversal ('..', '/'), spasi, & karakter aneh. */
+  function slugifyName(name) {
+    var s = String(name || '').toLowerCase();
+    /* ambil ekstensi terakhir yang wajar (2-5 huruf) bila ada */
+    var ext = '';
+    var m = /\.([a-z0-9]{2,5})$/.exec(s);
+    if (m) { ext = m[1]; s = s.slice(0, s.length - m[0].length); }
+    s = s.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    if (!s) s = 'foto';
+    return ext ? (s + '.' + ext) : s;
+  }
+
+  /* Buat path unik: '<folder>/<slug>-<timestamp>-<rand>.<ext>'.
+     Date.now & Math.random di browser: cukup untuk keunikan undangan. */
+  function buildPhotoPath(folder, file) {
+    var base = slugifyName(file && file.name);
+    var ext = '';
+    var m = /\.([a-z0-9]{2,5})$/.exec(base);
+    if (m) { ext = m[1]; base = base.slice(0, base.length - m[0].length); }
+    else if (file && file.type && file.type.indexOf('image/') === 0) {
+      ext = file.type.slice(6).replace(/[^a-z0-9]/g, '') || 'jpg';
+      if (ext === 'jpeg') ext = 'jpg';
+    }
+    var rand = Math.random().toString(36).slice(2, 8);
+    var fld = String(folder || 'umum').replace(/[^a-z0-9/_-]+/gi, '').replace(/^\/+|\/+$/g, '') || 'umum';
+    var fname = base + '-' + Date.now() + '-' + rand + (ext ? '.' + ext : '');
+    return fld + '/' + fname;
+  }
+
+  /* uploadPhoto(file, opts) -> Promise<{ok:true,url} | {ok:false,error}>
+     opts: { folder:'mempelai', maxBytes:Number, path:'override/path.jpg' }.
+     Validasi: harus File/Blob, tipe image/*, ukuran <= maxBytes. */
+  function uploadPhoto(file, opts) {
+    opts = opts || {};
+    try {
+      if (!isConfigured()) return Promise.resolve({ ok: false, error: 'cloud-off' });
+      if (!file || typeof file !== 'object' || typeof file.size !== 'number') {
+        return Promise.resolve({ ok: false, error: 'no-file' });
+      }
+      var type = String(file.type || '');
+      if (type.indexOf('image/') !== 0) {
+        return Promise.resolve({ ok: false, error: 'not-an-image' });
+      }
+      var limit = Number(opts.maxBytes) > 0 ? Number(opts.maxBytes) : MAX_PHOTO_BYTES;
+      if (file.size > limit) {
+        return Promise.resolve({ ok: false, error: 'too-large', maxBytes: limit, size: file.size });
+      }
+      if (file.size <= 0) {
+        return Promise.resolve({ ok: false, error: 'empty-file' });
+      }
+
+      var path = opts.path
+        ? String(opts.path).replace(/[^a-z0-9/._-]+/gi, '').replace(/^\/+/, '')
+        : buildPhotoPath(opts.folder, file);
+      if (!path) return Promise.resolve({ ok: false, error: 'bad-path' });
+
+      return ensureFreshToken().then(function (token) {
+        if (!token) return { ok: false, error: 'not-authenticated' };
+
+        var to = timeoutSignal(opts.timeout || 30000); /* upload lebih lama dari REST biasa */
+        var init = {
+          method: 'POST',
+          headers: {
+            'apikey': ANON,
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': type || 'application/octet-stream',
+            'x-upsert': 'true'
+          },
+          body: file,
+          signal: to.signal
+        };
+
+        return fetch(URL_BASE + '/storage/v1/object/' + PHOTO_BUCKET + '/' + path, init)
+          .then(function (res) {
+            to.cancel();
+            if (res.ok) {
+              var publicUrl = URL_BASE + '/storage/v1/object/public/' + PHOTO_BUCKET + '/' + path;
+              return { ok: true, url: publicUrl, path: path };
+            }
+            return res.text().catch(function () { return ''; }).then(function (body) {
+              return { ok: false, error: 'upload-failed', status: res.status, detail: body };
+            });
+          }, function (err) {
+            to.cancel();
+            return { ok: false, error: 'network', detail: String(err && err.message || err) };
+          });
+      }, function () {
+        return { ok: false, error: 'not-authenticated' };
+      });
+    } catch (e) {
+      return Promise.resolve({ ok: false, error: 'unexpected', detail: String(e && e.message || e) });
+    }
+  }
+
   /* ---------- Ekspor publik ---------- */
   window.CloudAPI = {
     isConfigured: isConfigured,
@@ -321,6 +427,7 @@
     saveInvitationConfig: saveInvitationConfig,
     submitRsvp: submitRsvp,
     listRsvp: listRsvp,
+    uploadPhoto: uploadPhoto,
     login: login,
     logout: logout,
     getSession: getSession,

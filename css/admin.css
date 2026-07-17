@@ -320,6 +320,30 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 .row-del:hover { background: rgba(224,138,123,0.14); }
 .repeater__empty { font-size: 13px; color: var(--muted); font-style: italic; padding: 4px 0; }
 
+/* ============ PHOTO SLOTS (foto mempelai/cover/galeri) ============ */
+.photo-slot { margin-bottom: 20px; }
+.photo-slot:last-child { margin-bottom: 0; }
+.photo-slot__label {
+  display: block; font-size: 11.5px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.photo-slot__body { display: flex; gap: 14px; align-items: flex-start; }
+.photo-preview {
+  flex: 0 0 auto; width: 68px; height: 68px; border-radius: 9px;
+  object-fit: cover; background: var(--surface-2);
+  border: 1px solid var(--line); display: block;
+}
+.photo-slot__controls { flex: 1 1 auto; min-width: 0; }
+.photo-slot__controls .field { margin-bottom: 0; }
+.photo-slot__actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px;
+  margin-top: 10px;
+}
+.photo-slot__status { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.photo-slot__status--ok { color: var(--ok); }
+.photo-slot__status--error { color: var(--danger); }
+
 /* ============ RSVP SUMMARY ============ */
 .summary {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;

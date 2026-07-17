@@ -40,6 +40,15 @@
   }
   function isObj(o) { return o && typeof o === 'object' && !Array.isArray(o); }
 
+  /* Whitelist URL untuk <img src> pratinjau: hanya http/https & data:image.
+     Blokir javascript:, data:text/html, dll. '' => tak ada pratinjau. */
+  function safeImgSrc(url) {
+    var s = String(url == null ? '' : url).trim();
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^data:image\/(png|jpe?g|gif|webp|avif|svg\+xml);/i.test(s)) return s;
+    return '';
+  }
+
   function setPath(obj, path, value) {
     var keys = path.split('.');
     var cur = obj;
@@ -278,6 +287,11 @@
     renderEvents(Array.isArray(cfg.events) ? cfg.events : []);
     renderAccounts(Array.isArray(cfg.accounts) ? cfg.accounts : []);
     renderWishes(Array.isArray(cfg.seedWishes) ? cfg.seedWishes : []);
+    /* foto & kisah (opsional; defensif untuk undangan lama tanpa field ini) */
+    var photos = isObj(cfg.photos) ? cfg.photos : {};
+    fillPhotoSlots(photos);
+    renderGallery(Array.isArray(photos.gallery) ? photos.gallery : []);
+    renderStory(Array.isArray(cfg.story) ? cfg.story : []);
     updateBranding();
   }
 
@@ -486,6 +500,177 @@
   if ($('addWishBtn')) $('addWishBtn').addEventListener('click', function () { addWishRow({}); });
 
   /* ================================================================
+     FOTO — slot mempelai/cover + galeri (upload ke Supabase Storage)
+     ----------------------------------------------------------------
+     Tiap "scope" (slot tetap atau baris galeri) berisi:
+       [data-photo-url]     input teks URL (nilai final yang disimpan)
+       [data-photo-input]   <input type=file> tersembunyi
+       [data-photo-upload]  tombol pemicu unggah
+       [data-photo-preview] <img> pratinjau kecil
+       [data-photo-status]  teks status ("Mengunggah…"/sukses/gagal)
+     ================================================================ */
+  var MB = 1024 * 1024;
+
+  /* Perbarui <img> pratinjau dari nilai URL, disaring safeImgSrc (anti-XSS).
+     Selalu lewat .src (bukan innerHTML). '' => sembunyikan pratinjau. */
+  function updatePhotoPreview(scope) {
+    if (!scope) return;
+    var urlEl = scope.querySelector('[data-photo-url]');
+    var img = scope.querySelector('[data-photo-preview]');
+    if (!img) return;
+    var src = safeImgSrc(urlEl ? urlEl.value : '');
+    if (src) { img.src = src; img.hidden = false; }
+    else { img.removeAttribute('src'); img.hidden = true; }
+  }
+
+  function setPhotoStatus(el, msg, kind) {
+    if (!el) return;
+    el.textContent = msg || '';
+    el.className = 'photo-slot__status' + (kind ? ' photo-slot__status--' + kind : '');
+  }
+
+  /* Pesan ramah (non-teknis) untuk tiap kode error uploadPhoto. */
+  function photoErrorMessage(r) {
+    var err = (r && r.error) || 'unexpected';
+    switch (err) {
+      case 'cloud-off': return 'Penyimpanan online belum aktif.';
+      case 'no-file': return 'Berkas tidak terbaca. Coba pilih ulang.';
+      case 'not-an-image': return 'Berkas harus berupa gambar (JPG, PNG, dsb.).';
+      case 'too-large':
+        var mb = Math.round(((r && r.maxBytes) || 3 * MB) / MB);
+        return 'Ukuran foto melebihi ' + mb + ' MB. Perkecil dulu lalu unggah lagi.';
+      case 'empty-file': return 'Berkas kosong. Coba pilih foto lain.';
+      case 'not-authenticated': return 'Sesi Anda berakhir. Masuk lagi untuk mengunggah.';
+      case 'upload-failed': return 'Penyimpanan foto belum aktif. Hubungi teknisi yang menyiapkan undangan ini untuk mengaktifkannya.';
+      case 'network': return 'Gagal terhubung. Periksa internet Anda lalu coba lagi.';
+      default: return 'Gagal mengunggah foto. Coba lagi sebentar.';
+    }
+  }
+
+  /* Jalankan unggah 1 berkas untuk sebuah scope; isi URL + pratinjau bila sukses.
+     TIDAK PERNAH crash — uploadPhoto selalu mengembalikan {ok:false} saat gagal. */
+  function runPhotoUpload(scope, folder, file) {
+    var urlEl = scope.querySelector('[data-photo-url]');
+    var statusEl = scope.querySelector('[data-photo-status]');
+    var btn = scope.querySelector('[data-photo-upload]');
+    setPhotoStatus(statusEl, 'Mengunggah…', null);
+    if (btn) btn.disabled = true;
+    return API.uploadPhoto(file, { folder: folder }).then(function (r) {
+      if (btn) btn.disabled = false;
+      if (r && r.ok) {
+        if (urlEl) urlEl.value = r.url;
+        updatePhotoPreview(scope);
+        setPhotoStatus(statusEl, 'Foto berhasil diunggah.', 'ok');
+      } else {
+        setPhotoStatus(statusEl, photoErrorMessage(r), 'error');
+        if (r && r.error === 'not-authenticated') {
+          showStatus('Sesi Anda telah berakhir. Silakan masuk kembali.', 'error');
+        }
+      }
+    }, function () {
+      /* jaga-jaga; uploadPhoto seharusnya tak pernah reject */
+      if (btn) btn.disabled = false;
+      setPhotoStatus(statusEl, 'Gagal mengunggah foto. Coba lagi.', 'error');
+    });
+  }
+
+  /* Sambungkan kontrol foto pada sebuah scope (dipanggil sekali per slot/baris). */
+  function wirePhotoControls(scope, folder) {
+    if (!scope) return;
+    var urlEl = scope.querySelector('[data-photo-url]');
+    var fileEl = scope.querySelector('[data-photo-input]');
+    var btn = scope.querySelector('[data-photo-upload]');
+    if (urlEl) {
+      urlEl.addEventListener('input', function () { updatePhotoPreview(scope); });
+    }
+    if (btn && fileEl) {
+      btn.addEventListener('click', function () { fileEl.click(); });
+      fileEl.addEventListener('change', function () {
+        var file = fileEl.files && fileEl.files[0];
+        fileEl.value = ''; /* reset agar berkas sama bisa dipilih ulang */
+        if (file) runPhotoUpload(scope, folder, file);
+      });
+    }
+  }
+
+  /* ---- SLOT FOTO TETAP (groom/bride/cover) ---- */
+  var PHOTO_SLOTS = [
+    { key: 'groom', folder: 'mempelai' },
+    { key: 'bride', folder: 'mempelai' },
+    { key: 'cover', folder: 'sampul' }
+  ];
+  function photoSlotScope(key) {
+    return document.querySelector('[data-photo-slot="' + key + '"]');
+  }
+  PHOTO_SLOTS.forEach(function (slot) {
+    wirePhotoControls(photoSlotScope(slot.key), slot.folder);
+  });
+  function fillPhotoSlots(photos) {
+    photos = isObj(photos) ? photos : {};
+    PHOTO_SLOTS.forEach(function (slot) {
+      var scope = photoSlotScope(slot.key);
+      if (!scope) return;
+      var urlEl = scope.querySelector('[data-photo-url]');
+      if (urlEl) urlEl.value = photos[slot.key] || '';
+      setPhotoStatus(scope.querySelector('[data-photo-status]'), '', null);
+      updatePhotoPreview(scope);
+    });
+  }
+
+  /* ---- GALERI (repeater URL) ---- */
+  var galleryList = $('galleryList');
+  function addGalleryRow(url) {
+    var row = cloneTpl('tplGallery');
+    var urlEl = row.querySelector('[data-photo-url]');
+    if (urlEl) urlEl.value = url || '';
+    galleryList.appendChild(row);
+    wirePhotoControls(row, 'galeri');
+    updatePhotoPreview(row);
+    wireDelete(row, galleryList, 'Foto');
+    reindex(galleryList, 'Foto');
+  }
+  function renderGallery(arr) {
+    galleryList.textContent = '';
+    arr.forEach(function (u) { addGalleryRow(u); });
+    reindex(galleryList, 'Foto');
+  }
+  function collectGallery() {
+    return $$('[data-row="gallery"]', galleryList).map(function (row) {
+      var el = row.querySelector('[data-photo-url]');
+      return el ? el.value.trim() : '';
+    }).filter(function (u) { return !!u; }); /* buang baris kosong */
+  }
+  if ($('addGalleryBtn')) $('addGalleryBtn').addEventListener('click', function () { addGalleryRow(''); });
+
+  /* ---- KISAH / PERJALANAN (repeater) ---- */
+  var storyList = $('storyList');
+  function addStoryRow(item) {
+    item = item || {};
+    var row = cloneTpl('tplStory');
+    if (rowField(row, 'year')) rowField(row, 'year').value = item.year || '';
+    if (rowField(row, 'title')) rowField(row, 'title').value = item.title || '';
+    if (rowField(row, 'text')) rowField(row, 'text').value = item.text || '';
+    storyList.appendChild(row);
+    wireDelete(row, storyList, 'Bab');
+    reindex(storyList, 'Bab');
+  }
+  function renderStory(arr) {
+    storyList.textContent = '';
+    arr.forEach(addStoryRow);
+    reindex(storyList, 'Bab');
+  }
+  function collectStory() {
+    return $$('[data-row="story"]', storyList).map(function (row) {
+      return {
+        year: fieldVal(row, 'year'),
+        title: fieldVal(row, 'title'),
+        text: fieldVal(row, 'text')
+      };
+    }).filter(function (s) { return s.year || s.title || s.text; }); /* buang bab kosong */
+  }
+  if ($('addStoryBtn')) $('addStoryBtn').addEventListener('click', function () { addStoryRow({}); });
+
+  /* ================================================================
      RAKIT CONFIG dari form (clone base + timpa field form)
      ================================================================ */
   function collectConfig() {
@@ -515,6 +700,17 @@
     cfg.events = collectEvents();
     cfg.accounts = collectAccounts();
     cfg.seedWishes = collectWishes();
+    /* foto: clone base.photos agar field tak dikenal terjaga, lalu timpa slot. */
+    var photos = isObj(cfg.photos) ? cfg.photos : {};
+    PHOTO_SLOTS.forEach(function (slot) {
+      var scope = photoSlotScope(slot.key);
+      var urlEl = scope && scope.querySelector('[data-photo-url]');
+      photos[slot.key] = urlEl ? urlEl.value.trim() : (photos[slot.key] || '');
+    });
+    photos.gallery = collectGallery();
+    cfg.photos = photos;
+    /* kisah: array bab dari form (bab kosong dibuang). */
+    cfg.story = collectStory();
     return cfg;
   }
 

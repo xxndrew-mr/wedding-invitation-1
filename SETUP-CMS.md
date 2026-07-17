@@ -1,4 +1,4 @@
-# Panduan Setup CMS (Supabase) — Undangan Andre & Sarah
+# Panduan Setup CMS (Supabase) — Undangan Hafif & Aisah
 
 Undangan ini **berjalan penuh tanpa CMS**: cukup edit [`js/config.js`](js/config.js)
 dan host folder sebagai situs statis. CMS (Supabase) bersifat **opsional** —
@@ -81,6 +81,23 @@ window.SUPABASE = {
    GitHub Pages / hosting apa pun).
 2. Tamu membuka `index.html`. Anda membuka **`/admin.html`**, login dengan akun
    admin dari langkah 4, lalu kelola isi undangan & lihat RSVP.
+
+## Langkah 7 — Aktifkan foto (opsional)
+
+Agar admin bisa **mengunggah foto** (mempelai, sampul, galeri), dibutuhkan
+tempat penyimpanan bernama bucket **`photos`** yang bersifat **publik** (agar
+foto bisa dilihat semua tamu). Pilih **salah satu** cara:
+
+- **Cara mudah (SQL):** Anda sudah selesai bila menjalankan **seluruh**
+  `supabase/schema.sql` di Langkah 2 — bagian **Storage (nomor 7)** di file itu
+  otomatis membuat bucket `photos` beserta aturan aksesnya. Tidak ada langkah
+  tambahan.
+- **Cara lewat Dashboard:** buka **Storage → New bucket**, beri nama persis
+  `photos`, aktifkan **Public bucket**, lalu **Create**. (Aturan aksesnya tetap
+  dari `schema.sql`, jadi pastikan schema sudah dijalankan.)
+
+> Tanpa langkah ini, undangan tetap tampil normal memakai ornamen/ilustrasi
+> bawaan — fitur unggah foto saja yang belum aktif.
 
 ---
 

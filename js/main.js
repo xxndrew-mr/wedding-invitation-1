@@ -15,6 +15,16 @@
   function $(id) { return document.getElementById(id); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  /* Angka Romawi untuk penomoran caption/ghost agar konsisten dengan markup. */
+  function toRoman(n) {
+    n = Number(n);
+    if (!(n > 0) || !isFinite(n)) return String(n);
+    var map = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'],
+      [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+    var r = '';
+    map.forEach(function (p) { while (n >= p[0]) { r += p[1]; n -= p[0]; } });
+    return r;
+  }
   function getPath(obj, path) {
     return path.split('.').reduce(function (o, k) {
       return (o === null || o === undefined) ? undefined : o[k];
@@ -46,6 +56,21 @@
   function safeHref(url) {
     var s = String(url == null ? '' : url).trim();
     return /^(https?:|geo:|mailto:|tel:)/i.test(s) ? s : '';
+  }
+
+  /* Whitelist khusus untuk <img src> / background-image (BEDA dari safeHref):
+     hanya http/https & data:image/* (blokir javascript:, data:text/html, tel:).
+     Kembalikan '' bila tidak aman -> renderer memakai ornamen SVG bawaan. */
+  function safeImgSrc(url) {
+    var s = String(url == null ? '' : url).trim();
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^data:image\/(png|jpe?g|gif|webp|avif|svg\+xml);/i.test(s)) return s;
+    return '';
+  }
+  /* Escape nilai URL agar aman disisipkan ke dalam CSS url("...") */
+  function cssUrl(s) {
+    return String(s).replace(/[\\"]/g, function (c) { return '\\' + c; })
+      .replace(/[\r\n]/g, '');
   }
 
   /* Preseden sumber data (kontrak fase 1). Selalu resolve — tidak pernah
@@ -108,11 +133,102 @@
     var v = getPath(CONFIG, el.getAttribute('data-bind'));
     if (v !== undefined && v !== null) el.textContent = String(v);
   });
+
+  /* ================== RANGKAIAN ACARA dari CONFIG (dinamis) ==================
+     Jumlah kartu mengikuti CONFIG.events: kartu berlebih dibuat dengan
+     mengklon kartu bawaan (gaya/ikon/ornamen konsisten), kartu berlebih
+     dihapus. Dresscode ditampilkan untuk SETIAP acara yang mengisinya, dan
+     dihapus bila kosong agar placeholder tidak bocor ke tamu. Dijalankan
+     SEBELUM builder .js-maps/.js-calendar agar tombol pada kartu klon ikut
+     mendapatkan href. */
+  try {
+    var events = CONFIG.events;
+    if (Array.isArray(events) && events.length) {
+      var eventCards = $$('.event-card');
+      if (eventCards.length) {
+        var evContainer = eventCards[0].parentNode;
+        var evProto = eventCards.length;
+        events.forEach(function (ev, i) {
+          if (!ev || typeof ev !== 'object') return;
+          var card;
+          if (i < eventCards.length) {
+            card = eventCards[i];
+          } else {
+            card = eventCards[i % evProto].cloneNode(true);
+            evContainer.appendChild(card);
+          }
+          var h3 = card.querySelector('h3');
+          if (h3) h3.textContent = String(ev.name == null ? '' : ev.name);
+          var timeEl = card.querySelector('.ev-time');
+          if (timeEl) timeEl.textContent = String(ev.time == null ? '' : ev.time);
+          var dress = card.querySelector('.ev-dress');
+          if (ev.dresscode) {
+            if (!dress) {
+              dress = document.createElement('p');
+              dress.className = 'ev-dress';
+              var rows = card.querySelector('.ev-rows');
+              if (rows && rows.nextSibling) card.insertBefore(dress, rows.nextSibling);
+              else if (rows) card.appendChild(dress);
+              else card.appendChild(dress);
+            }
+            dress.removeAttribute('data-bind');
+            dress.textContent = String(ev.dresscode);
+          } else if (dress && dress.parentNode) {
+            dress.parentNode.removeChild(dress);
+          }
+        });
+        /* Hapus kartu bawaan berlebih bila acara lebih sedikit dari markup */
+        for (var ek = events.length; ek < eventCards.length; ek++) {
+          if (eventCards[ek] && eventCards[ek].parentNode) {
+            eventCards[ek].parentNode.removeChild(eventCards[ek]);
+          }
+        }
+      }
+    }
+  } catch (e) { /* kartu acara bawaan tetap tampil */ }
+
+  /* ================== AMPLOP DIGITAL dari CONFIG (dinamis) ==================
+     Render satu kartu rekening per CONFIG.accounts. Menghindari placeholder
+     kartu ke-2 bocor saat rekening dikurangi, memunculkan rekening ke-3+,
+     dan menjaga data-copy-index + aria-label selalu sesuai nama bank. */
+  try {
+    var accounts = CONFIG.accounts;
+    if (Array.isArray(accounts) && accounts.length) {
+      var bankCards = $$('.bank-card');
+      if (bankCards.length) {
+        var bankContainer = bankCards[0].parentNode;
+        var bankProto = bankCards[0].cloneNode(true); /* template bersih */
+        bankCards.forEach(function (c) { if (c.parentNode) c.parentNode.removeChild(c); });
+        accounts.forEach(function (acc, i) {
+          if (!acc || typeof acc !== 'object') return;
+          var card = bankProto.cloneNode(true);
+          $$('[data-bind]', card).forEach(function (el) { el.removeAttribute('data-bind'); });
+          var nameEl = card.querySelector('.bank-name');
+          if (nameEl) nameEl.textContent = String(acc.bank == null ? '' : acc.bank);
+          var numEl = card.querySelector('.bank-number');
+          if (numEl) {
+            var shown = (acc.display != null && String(acc.display).trim())
+              ? acc.display : (acc.number == null ? '' : acc.number);
+            numEl.textContent = String(shown);
+          }
+          var holderEl = card.querySelector('.bank-holder');
+          if (holderEl) holderEl.textContent = String(acc.holder == null ? '' : acc.holder);
+          var btn = card.querySelector('.copy-btn');
+          if (btn) {
+            btn.setAttribute('data-copy-index', String(i));
+            btn.setAttribute('aria-label', 'Salin nomor ' + (acc.bank || 'rekening'));
+          }
+          bankContainer.appendChild(card);
+        });
+      }
+    }
+  } catch (e) { /* kartu rekening bawaan tetap tampil */ }
+
   (function () {
     var mapsHref = safeHref(CONFIG.venue && CONFIG.venue.maps);
     $$('.js-maps').forEach(function (a) {
-      if (mapsHref) a.setAttribute('href', mapsHref);
-      else a.removeAttribute('href');
+      if (mapsHref) { a.setAttribute('href', mapsHref); a.style.display = ''; }
+      else { a.removeAttribute('href'); a.style.display = 'none'; }
     });
   })();
   (function buildCalendarLinks() {
@@ -125,25 +241,166 @@
     $$('.js-calendar').forEach(function (a) { a.setAttribute('href', url); });
   })();
 
+  /* ================== FOTO & KISAH dari CONFIG (fallback aman ke ornamen) ==================
+     Semua opsional: bila kosong/hilang, markup ornamen/ilustrasi bawaan dibiarkan
+     apa adanya. URL gambar selalu disanitasi (safeImgSrc) untuk cegah XSS. */
+  var PHOTOS = (CONFIG && CONFIG.photos && typeof CONFIG.photos === 'object') ? CONFIG.photos : {};
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var XLINKNS = 'http://www.w3.org/1999/xlink';
+
+  /* 1. COVER — foto sampul sebagai latar dengan overlay gelap agar teks terbaca. */
+  try {
+    var coverSrc = safeImgSrc(PHOTOS.cover);
+    if (coverSrc) {
+      var bg = 'linear-gradient(rgba(7,13,11,0.70), rgba(7,13,11,0.82)), url("' + cssUrl(coverSrc) + '")';
+      $$('#cover .cover-inner').forEach(function (inner) {
+        inner.style.backgroundImage = bg;
+        inner.style.backgroundSize = 'cover';
+        inner.style.backgroundPosition = 'center';
+        inner.style.backgroundRepeat = 'no-repeat';
+      });
+    }
+  } catch (e) { /* biarkan gradien bawaan */ }
+
+  /* 2. POTRET MEMPELAI — sisipkan foto sebagai <image> di dalam svg.portrait,
+     mengikuti klip lengkung (arch) yang sama; siluet bawaan disembunyikan.
+     Bila URL kosong/invalid: ilustrasi SVG bawaan tetap dipakai. */
+  function renderPortrait(card, url, altName) {
+    var src = safeImgSrc(url);
+    if (!card || !src) return;
+    var svg = card.querySelector('svg.portrait');
+    if (!svg) return;
+    var uid = 'portraitClip-' + Math.random().toString(36).slice(2);
+    var defs = document.createElementNS(SVGNS, 'defs');
+    var clip = document.createElementNS(SVGNS, 'clipPath');
+    clip.setAttribute('id', uid);
+    var cpath = document.createElementNS(SVGNS, 'path');
+    cpath.setAttribute('d', 'M8 121 V48 A42 42 0 0 1 92 48 V121 Z');
+    clip.appendChild(cpath);
+    defs.appendChild(clip);
+    svg.appendChild(defs);
+
+    var img = document.createElementNS(SVGNS, 'image');
+    img.setAttribute('x', '8');
+    img.setAttribute('y', '6');
+    img.setAttribute('width', '84');
+    img.setAttribute('height', '115');
+    img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    img.setAttribute('clip-path', 'url(#' + uid + ')');
+    img.setAttribute('href', src);
+    img.setAttributeNS(XLINKNS, 'href', src); /* kompatibilitas browser lama */
+
+    /* Sembunyikan siluet bawaan agar tidak menumpuk foto */
+    var sil = svg.querySelector('use[href="#silhouette"]');
+    if (sil) sil.setAttribute('style', 'display:none');
+
+    /* Sisipkan tepat setelah path isian gradien (path pertama) supaya kedua
+       garis lengkung emas (path ke-2 & ke-3) tetap tergambar DI ATAS foto. */
+    var firstPath = svg.querySelector('path');
+    if (firstPath && firstPath.nextSibling) svg.insertBefore(img, firstPath.nextSibling);
+    else svg.appendChild(img);
+
+    if (altName) svg.setAttribute('aria-label', 'Foto ' + altName);
+  }
+  try {
+    var coupleCards = $$('.couple-card');
+    var groomName = (CONFIG.groom && CONFIG.groom.name) || 'mempelai pria';
+    var brideName = (CONFIG.bride && CONFIG.bride.name) || 'mempelai wanita';
+    renderPortrait(coupleCards[0], PHOTOS.groom, groomName);
+    renderPortrait(coupleCards[1], PHOTOS.bride, brideName);
+  } catch (e) { /* ilustrasi bawaan tetap dipakai */ }
+
+  /* 3. GALERI — isi 6 frame ornamen dengan foto (lazy, object-fit cover).
+     < 6 foto: sisanya tetap ornamen. > 6 foto: tambah sel bergaya sama.
+     Kosong: tampilan ornamen sekarang dibiarkan utuh. */
+  try {
+    var galleryUrls = (PHOTOS && Array.isArray(PHOTOS.gallery) ? PHOTOS.gallery : [])
+      .map(safeImgSrc).filter(Boolean);
+    if (galleryUrls.length) {
+      var galleryEl = document.querySelector('.gallery');
+      if (galleryEl) {
+        var cells = $$('.g-cell', galleryEl);
+        var protoCount = cells.length || 1;
+        galleryUrls.forEach(function (src, i) {
+          var cell, frame;
+          if (i < cells.length) {
+            cell = cells[i];
+          } else {
+            /* Klon sel yang ada (siklus) agar gaya frame/rasio/gradien konsisten */
+            cell = cells[i % protoCount].cloneNode(true);
+            galleryEl.appendChild(cell);
+            /* Angka Romawi agar konsisten dengan caption 6 sel bawaan (Momen I–VI) */
+            var cap = cell.querySelector('.g-cap');
+            if (cap) cap.textContent = 'Momen ' + toRoman(i + 1);
+          }
+          frame = cell.querySelector('.g-frame');
+          if (!frame) return;
+          var orn = frame.querySelector('.g-orn');
+          if (orn) orn.setAttribute('style', 'display:none');
+          /* Bersihkan sisa foto bila sel hasil klon sudah punya <img> */
+          var old = frame.querySelector('img.g-img');
+          if (old) old.parentNode.removeChild(old);
+          var im = document.createElement('img');
+          im.className = 'g-img';
+          im.src = src;
+          im.loading = 'lazy';
+          im.decoding = 'async';
+          im.alt = 'Foto galeri ' + (i + 1);
+          frame.insertBefore(im, frame.firstChild);
+        });
+      }
+    }
+  } catch (e) { /* ornamen galeri bawaan tetap tampil */ }
+
+  /* 4. KISAH — bangun ulang timeline dari CONFIG.story bila array valid & non-kosong.
+     Bila kosong/hilang: 4 article.story-item hardcode dibiarkan apa adanya. */
+  try {
+    var story = CONFIG.story;
+    if (Array.isArray(story) && story.length) {
+      var timeline = $('timeline');
+      if (timeline) {
+        $$('.story-item', timeline).forEach(function (el) { el.parentNode.removeChild(el); });
+        var frag = document.createDocumentFragment();
+        story.forEach(function (bab) {
+          if (!bab || typeof bab !== 'object') return;
+          var art = document.createElement('article');
+          art.className = 'story-item';
+          var node = document.createElement('span');
+          node.className = 'story-node';
+          node.setAttribute('aria-hidden', 'true');
+          art.appendChild(node);
+          var year = document.createElement('p');
+          year.className = 'story-year';
+          year.textContent = String(bab.year == null ? '' : bab.year);
+          art.appendChild(year);
+          var h3 = document.createElement('h3');
+          h3.textContent = String(bab.title == null ? '' : bab.title);
+          art.appendChild(h3);
+          var p = document.createElement('p');
+          p.textContent = String(bab.text == null ? '' : bab.text);
+          art.appendChild(p);
+          frag.appendChild(art);
+        });
+        timeline.appendChild(frag); /* spine tetap sebagai anak pertama */
+      }
+    }
+  } catch (e) { /* kisah hardcode bawaan tetap tampil */ }
+
   /* ================== GATE RILIS — placeholder tidak boleh bocor ke tamu ==================
      Selama data wajib masih berisi nilai contoh, elemen yang bisa menyesatkan
      tamu disembunyikan otomatis. Isi data asli di CONFIG untuk memunculkannya. */
   try { (function releaseGate() {
     var problems = [];
 
-    /* 1. Nomor rekening/DANA placeholder → sembunyikan seluruh section Amplop
-       Digital agar tombol "Salin Nomor" tidak menyalin nomor yang salah. */
+    /* 1. Nomor rekening/DANA placeholder → section Amplop Digital TETAP TAMPIL
+       (mandat: amplop harus terlihat oleh tamu). Hanya beri peringatan di
+       console agar mempelai mengganti nomor contoh sebelum undangan disebar. */
     var PLACEHOLDER_NUMBERS = ['1234567890', '081234567890'];
     var accountsPlaceholder = (Array.isArray(CONFIG.accounts) ? CONFIG.accounts : []).some(function (a) {
       return a && PLACEHOLDER_NUMBERS.indexOf(String(a.number)) !== -1;
     });
     if (accountsPlaceholder) {
-      var amplop = $('amplopSection');
-      if (amplop) {
-        amplop.style.display = 'none';
-        amplop.setAttribute('aria-hidden', 'true');
-      }
-      problems.push('CONFIG.accounts masih PLACEHOLDER — section Amplop Digital disembunyikan. Isi nomor rekening & DANA asli untuk menampilkannya.');
+      problems.push('CONFIG.accounts masih PLACEHOLDER (nomor contoh 1-2-3-4). Amplop Digital tetap ditampilkan — GANTI dengan nomor rekening & DANA asli sebelum undangan disebar agar tamu tidak menyalin nomor yang salah.');
     }
 
     /* 2. Venue placeholder → sembunyikan tombol "Petunjuk Lokasi" agar Google
