@@ -1,9 +1,18 @@
 /* ================================================================
-   PANEL ADMIN — Undangan Andre & Sarah
+   PANEL ADMIN — Undangan Hafif & Aisah
    Selaras nuansa undangan (emerald + gold) namun lebih utilitarian.
    Tanpa library eksternal. Mobile-first, kontras baik, fokus jelas.
    ================================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ----------------------------------------------------------------
+   PERBAIKAN BUG: sebelumnya .login{display:flex} menang atas UA
+   default [hidden]{display:none}, sehingga form login tetap tampil
+   setelah loginView.hidden=true. Aturan global !important ini
+   memastikan SEMUA elemen ber-atribut [hidden] benar-benar hilang,
+   apa pun display yang di-set kelasnya (.login, .summary, .table, dst).
+   ---------------------------------------------------------------- */
+[hidden] { display: none !important; }
 
 :root {
   --bg:        #0B1512;
@@ -230,6 +239,13 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
   padding: 0; margin-bottom: 4px; float: left;
 }
 .card__title + * { clear: both; }
+.card__tag {
+  font-family: 'Archivo', sans-serif; font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; vertical-align: middle;
+  color: var(--muted); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 2px 9px; margin-left: 8px;
+}
 .card > .field:first-of-type,
 .card > .grid:first-of-type,
 .card > .repeater:first-of-type,
@@ -357,6 +373,49 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
   text-align: center; color: var(--muted); font-size: 14px;
   padding: 40px 20px; font-style: italic;
 }
+
+/* ============ BAGIKAN KE TAMU (generator link) ============ */
+.share-actions {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin-bottom: 22px;
+}
+.share-result__head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 6px 0 16px;
+}
+.share-result__count {
+  font-size: 13px; color: var(--muted);
+}
+.share-result__count strong { color: var(--gold); font-weight: 600; }
+.share-result__bulk { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.link-list { display: flex; flex-direction: column; gap: 12px; }
+.link-card {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; background: rgba(27,46,38,0.4);
+}
+.link-card__name {
+  font-family: 'Fraunces', Georgia, serif; font-weight: 400;
+  font-size: 16px; color: var(--ink); margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.link-card__url {
+  display: block; width: 100%;
+  background: var(--surface-2); color: var(--muted);
+  border: 1px solid transparent; border-radius: 8px;
+  padding: 9px 12px; font-size: 12.5px;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  letter-spacing: 0.01em; overflow-wrap: anywhere;
+  margin-bottom: 12px;
+}
+.link-card__url:focus { outline: none; border-color: var(--gold); }
+.link-card__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.link-card__actions .btn { flex: 1 1 auto; }
+@media (min-width: 560px) {
+  .link-card__actions .btn { flex: 0 0 auto; }
+}
+.btn--wa { border-color: #34a853; color: #7fe0a0; }
+.btn--wa:hover { background: rgba(52,168,83,0.14); border-color: #34a853; }
 
 /* ============ FOOTER ============ */
 .foot {

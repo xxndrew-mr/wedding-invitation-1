@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Panel Admin — Undangan Andre &amp; Sarah</title>
+<title>Panel Admin — Undangan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Archivo:wght@300;400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
@@ -28,14 +28,14 @@
      ================================================================ -->
 <section id="loginView" class="login" aria-labelledby="loginTitle">
   <div class="login__card">
-    <p class="brand-mark">Andre <span class="brand-amp">&amp;</span> Sarah</p>
+    <p class="brand-mark" id="brandMark"><span class="brand-groom"></span> <span class="brand-amp">&amp;</span> <span class="brand-bride"></span></p>
     <p class="eyebrow">Panel Admin</p>
     <h1 id="loginTitle" class="login__title">Masuk untuk mengelola undangan</h1>
 
     <!-- Peringatan bila Supabase belum dikonfigurasi -->
     <div id="setupNotice" class="notice notice--warn" hidden>
-      <strong>Cloud belum dikonfigurasi.</strong>
-      <p>Isi <code>js/supabase-config.js</code> dengan <code>url</code> dan <code>anonKey</code> project Supabase Anda terlebih dahulu, lalu muat ulang halaman ini. Selama belum diisi, panel admin tidak dapat login dan situs undangan tetap memakai data bawaan dari <code>js/config.js</code>.</p>
+      <strong>Panel belum siap dipakai.</strong>
+      <p>Penyimpanan online belum diatur, jadi Anda belum bisa masuk. Mintalah teknisi yang menyiapkan undangan ini untuk mengaktifkannya terlebih dahulu. Sementara itu, undangan tetap tampil normal untuk tamu memakai data bawaan.</p>
     </div>
 
     <form id="loginForm" class="login__form" novalidate>
@@ -54,8 +54,8 @@
     </form>
 
     <p class="login__hint">
-      Akun admin dibuat manual dari Dashboard Supabase. Pastikan opsi
-      <em>Allow new users to sign up</em> sudah dimatikan di pengaturan Authentication.
+      Akun untuk masuk sudah disiapkan oleh teknisi Anda. Bila Anda lupa email atau
+      kata sandi, hubungi teknisi yang membuat undangan ini.
     </p>
   </div>
 </section>
@@ -67,7 +67,7 @@
 
   <header class="topbar">
     <div class="topbar__inner">
-      <p class="topbar__brand">Andre <span class="brand-amp">&amp;</span> Sarah <span class="topbar__tag">Admin</span></p>
+      <p class="topbar__brand" id="topbarBrand"><span class="brand-groom"></span> <span class="brand-amp">&amp;</span> <span class="brand-bride"></span> <span class="topbar__tag">Admin</span></p>
       <div class="topbar__actions">
         <span id="userBadge" class="topbar__user" aria-live="polite"></span>
         <button type="button" id="logoutBtn" class="btn btn--ghost btn--sm">Keluar</button>
@@ -75,9 +75,11 @@
     </div>
     <nav class="tabs" role="tablist" aria-label="Bagian panel admin">
       <button type="button" class="tab is-active" id="tabEditorBtn"
-              role="tab" aria-selected="true" aria-controls="editorTab">Editor Undangan</button>
+              role="tab" aria-selected="true" aria-controls="editorTab">Isi Undangan</button>
       <button type="button" class="tab" id="tabRsvpBtn"
               role="tab" aria-selected="false" aria-controls="rsvpTab">Daftar Kehadiran</button>
+      <button type="button" class="tab" id="tabShareBtn"
+              role="tab" aria-selected="false" aria-controls="shareTab">Bagikan ke Tamu</button>
     </nav>
   </header>
 
@@ -89,12 +91,12 @@
       <div class="toolbar">
         <div class="toolbar__info">
           <span id="sourceBadge" class="source-badge">Memuat…</span>
-          <span class="toolbar__hint">Ubah kolom lalu simpan ke cloud. Gunakan Pratinjau untuk melihat hasil sebelum menyimpan.</span>
+          <span class="toolbar__hint">Ubah isi undangan lalu tekan Simpan Perubahan. Tekan Lihat Undangan Dulu untuk mengintip hasilnya sebelum menyimpan.</span>
         </div>
         <div class="toolbar__buttons">
-          <button type="button" id="reloadBtn" class="btn btn--ghost btn--sm">Muat ulang</button>
-          <button type="button" id="previewBtn" class="btn btn--ghost btn--sm">Pratinjau Undangan</button>
-          <button type="button" id="saveBtn" class="btn btn--solid btn--sm">Simpan ke Cloud</button>
+          <button type="button" id="reloadBtn" class="btn btn--ghost btn--sm">Ambil Data Terbaru</button>
+          <button type="button" id="previewBtn" class="btn btn--ghost btn--sm">Lihat Undangan Dulu</button>
+          <button type="button" id="saveBtn" class="btn btn--solid btn--sm">Simpan Perubahan</button>
         </div>
       </div>
 
@@ -143,18 +145,18 @@
           <legend class="card__title">Tanggal Pernikahan</legend>
           <div class="grid grid--2">
             <div class="field">
-              <label for="dDisplay">Tampilan tanggal</label>
+              <label for="dDisplay">Tanggal (tulisan lengkap yang tampil)</label>
               <input type="text" id="dDisplay" data-path="date.display" placeholder="Sabtu, 12 Desember 2026">
             </div>
             <div class="field">
-              <label for="dNumeric">Tanggal numerik</label>
+              <label for="dNumeric">Tanggal singkat (angka)</label>
               <input type="text" id="dNumeric" data-path="date.numeric" placeholder="12 . 12 . 2026">
             </div>
           </div>
           <div class="field">
-            <label for="dIso">Target hitung mundur (WIB)</label>
+            <label for="dIso">Tanggal &amp; jam akad nikah (untuk hitung mundur di undangan)</label>
             <input type="datetime-local" id="dIso">
-            <p class="field-help">Waktu acara dalam zona WIB (UTC+7). Dipakai untuk hitung mundur di halaman utama.</p>
+            <p class="field-help">Waktu acara dalam zona WIB. Angka hitung mundur di undangan dihitung dari sini.</p>
           </div>
         </fieldset>
 
@@ -180,37 +182,36 @@
           <div class="field">
             <label for="vMaps">Tautan Google Maps</label>
             <input type="url" id="vMaps" data-path="venue.maps" placeholder="https://maps.google.com/...">
-            <p class="field-help">Gunakan share-link dari pin lokasi pasti. Selama nama/alamat masih placeholder, tombol lokasi disembunyikan di halaman tamu.</p>
+            <p class="field-help">Tempel tautan yang muncul saat Anda menekan tombol Bagikan di aplikasi Google Maps (pilih titik lokasi yang sudah pasti). Selama nama tempat dan alamat masih berupa contoh bawaan, tombol lokasi belum ditampilkan kepada tamu.</p>
           </div>
         </fieldset>
 
         <!-- CALENDAR -->
         <fieldset class="card">
-          <legend class="card__title">Tambah ke Kalender (Google Calendar)</legend>
+          <legend class="card__title">Tombol "Simpan ke Kalender" <span class="card__tag">Opsional</span></legend>
+          <p class="field-help">Mengatur tombol tambah-ke-kalender yang muncul di undangan. Boleh dibiarkan apa adanya.</p>
           <div class="field">
-            <label for="cTitle">Judul acara</label>
+            <label for="cTitle">Judul di kalender</label>
             <input type="text" id="cTitle" data-path="calendar.title">
           </div>
           <div class="grid grid--2">
             <div class="field">
-              <label for="cStart">Mulai (UTC)</label>
-              <input type="text" id="cStart" data-path="calendar.startUTC" class="mono"
-                     placeholder="20261212T010000Z" pattern="\d{8}T\d{6}Z">
-              <p class="field-help">Format: YYYYMMDDTHHMMSSZ (waktu UTC).</p>
+              <label for="cStartLocal">Jam mulai acara</label>
+              <input type="datetime-local" id="cStartLocal">
+              <p class="field-help">Zona WIB. Otomatis mengikuti tanggal hitung mundur bila dibiarkan kosong.</p>
             </div>
             <div class="field">
-              <label for="cEnd">Selesai (UTC)</label>
-              <input type="text" id="cEnd" data-path="calendar.endUTC" class="mono"
-                     placeholder="20261212T070000Z" pattern="\d{8}T\d{6}Z">
-              <p class="field-help">08.00 WIB = 01:00 UTC (kurangi 7 jam).</p>
+              <label for="cEndLocal">Jam selesai acara</label>
+              <input type="datetime-local" id="cEndLocal">
+              <p class="field-help">Zona WIB.</p>
             </div>
           </div>
           <div class="field">
-            <label for="cDetails">Detail</label>
+            <label for="cDetails">Keterangan</label>
             <textarea id="cDetails" data-path="calendar.details" rows="3"></textarea>
           </div>
           <div class="field">
-            <label for="cLocation">Lokasi (teks kalender)</label>
+            <label for="cLocation">Alamat di kalender</label>
             <input type="text" id="cLocation" data-path="calendar.location">
           </div>
         </fieldset>
@@ -237,31 +238,26 @@
               <input type="text" id="guestFallback" data-path="guestFallback" placeholder="Tamu Undangan">
             </div>
             <div class="field">
-              <label for="waNumber">Nomor WhatsApp RSVP</label>
+              <label for="waNumber">Nomor WhatsApp untuk konfirmasi kehadiran</label>
               <input type="text" id="waNumber" data-path="rsvp.whatsapp" inputmode="numeric"
                      placeholder="6281234567890">
               <p class="field-help">Format internasional tanpa tanda +. Kosongkan bila tidak dipakai.</p>
             </div>
-          </div>
-          <div class="field">
-            <label for="storageKey">Kunci penyimpanan RSVP lokal</label>
-            <input type="text" id="storageKey" data-path="storageKey" class="mono">
-            <p class="field-help">Kunci localStorage untuk ucapan tamu di sisi klien. Ubah hanya bila paham dampaknya.</p>
           </div>
         </fieldset>
 
         <!-- ACCOUNTS (array) -->
         <fieldset class="card">
           <legend class="card__title">Amplop Digital (Rekening)</legend>
-          <p class="field-help">Selama nomor masih pola contoh (1234567890 / 081234567890), section amplop disembunyikan di halaman tamu.</p>
+          <p class="field-help">Selama nomor rekening masih berupa contoh bawaan (1234567890 / 081234567890), bagian Amplop Digital belum ditampilkan kepada tamu. Isi dengan nomor asli agar muncul di undangan.</p>
           <div id="accountsList" class="repeater"></div>
           <button type="button" id="addAccountBtn" class="btn btn--dashed btn--block">+ Tambah rekening</button>
         </fieldset>
 
         <!-- SEED WISHES (array) -->
         <fieldset class="card">
-          <legend class="card__title">Ucapan Awal (Seed)</legend>
-          <p class="field-help">Ucapan contoh yang tampil sebelum ada RSVP tamu. Boleh diedit atau dihapus.</p>
+          <legend class="card__title">Contoh Ucapan</legend>
+          <p class="field-help">Ucapan contoh yang tampil sebelum ada tamu mengisi. Boleh diedit atau dihapus.</p>
           <div id="wishesList" class="repeater"></div>
           <button type="button" id="addWishBtn" class="btn btn--dashed btn--block">+ Tambah ucapan</button>
         </fieldset>
@@ -270,8 +266,8 @@
 
       <div class="toolbar toolbar--bottom">
         <div class="toolbar__buttons">
-          <button type="button" id="previewBtn2" class="btn btn--ghost">Pratinjau Undangan</button>
-          <button type="button" id="saveBtn2" class="btn btn--solid">Simpan ke Cloud</button>
+          <button type="button" id="previewBtn2" class="btn btn--ghost">Lihat Undangan Dulu</button>
+          <button type="button" id="saveBtn2" class="btn btn--solid">Simpan Perubahan</button>
         </div>
       </div>
     </section>
@@ -284,15 +280,15 @@
           <span class="toolbar__hint">Data kehadiran yang dikirim tamu melalui halaman undangan.</span>
         </div>
         <div class="toolbar__buttons">
-          <button type="button" id="rsvpReloadBtn" class="btn btn--ghost btn--sm">Muat ulang</button>
-          <button type="button" id="rsvpCsvBtn" class="btn btn--solid btn--sm">Unduh CSV</button>
+          <button type="button" id="rsvpReloadBtn" class="btn btn--ghost btn--sm">Ambil Data Terbaru</button>
+          <button type="button" id="rsvpCsvBtn" class="btn btn--solid btn--sm">Unduh Daftar (Excel)</button>
         </div>
       </div>
 
       <div id="rsvpSummary" class="summary" hidden>
         <div class="summary__item">
           <span class="summary__num" id="sumEntries">0</span>
-          <span class="summary__label">Entri</span>
+          <span class="summary__label">Total Balasan</span>
         </div>
         <div class="summary__item">
           <span class="summary__num" id="sumAttend">0</span>
@@ -323,10 +319,56 @@
       </div>
     </section>
 
+    <!-- ============ TAB: BAGIKAN KE TAMU ============ -->
+    <section id="shareTab" role="tabpanel" aria-labelledby="tabShareBtn" tabindex="-1" hidden>
+
+      <div class="toolbar">
+        <div class="toolbar__info">
+          <span class="toolbar__hint">Tempel daftar nama tamu, lalu panel membuatkan tautan undangan pribadi untuk tiap tamu. Nama tamu akan muncul di sampul undangannya.</span>
+        </div>
+      </div>
+
+      <fieldset class="card">
+        <legend class="card__title">Buat Tautan Undangan</legend>
+
+        <div class="field">
+          <label for="shareBaseUrl">Alamat website undangan</label>
+          <input type="url" id="shareBaseUrl" placeholder="https://contoh.com/index.html">
+          <p class="field-help">Terisi otomatis. Ubah hanya bila undangan Anda dibuka dari alamat lain.</p>
+        </div>
+
+        <div class="field">
+          <label for="guestNames">Tempel daftar nama tamu (satu nama per baris)</label>
+          <textarea id="guestNames" rows="6"
+                    placeholder="Bapak Budi &#38; Ibu Ani&#10;Keluarga Bapak Santoso&#10;Saudara Rizky"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="waTemplate">Template pesan WhatsApp</label>
+          <textarea id="waTemplate" rows="9"></textarea>
+          <p class="field-help">Tulisan <code>{nama}</code> dan <code>{link}</code> akan otomatis diganti dengan nama tamu dan tautan undangannya.</p>
+        </div>
+
+        <button type="button" id="genLinksBtn" class="btn btn--solid btn--block">Buat Tautan</button>
+      </fieldset>
+
+      <div id="linksResult" hidden>
+        <div class="share-result__head">
+          <span class="share-result__count" id="linksCount"></span>
+          <div class="share-result__bulk">
+            <button type="button" id="copyAllBtn" class="btn btn--ghost btn--sm">Salin Semua Tautan</button>
+            <button type="button" id="linksCsvBtn" class="btn btn--solid btn--sm">Unduh Daftar (Excel)</button>
+          </div>
+        </div>
+        <div id="linkList" class="link-list"></div>
+      </div>
+
+    </section>
+
   </main>
 
   <footer class="foot">
-    <p>Panel admin undangan — data disimpan di Supabase, dilindungi Row Level Security.</p>
+    <p>Panel pengelola undangan — perubahan tersimpan aman secara online.</p>
   </footer>
 </div>
 
@@ -377,7 +419,7 @@
       </div>
       <div class="field">
         <label>Atas nama</label>
-        <input type="text" data-field="holder" placeholder="a.n. Andre Pratama">
+        <input type="text" data-field="holder" placeholder="a.n. Muhammad Hafif Maulana">
       </div>
     </div>
   </div>
@@ -407,10 +449,9 @@
       <label>Pesan</label>
       <textarea data-field="message" rows="2" placeholder="Selamat menempuh hidup baru…"></textarea>
     </div>
-    <div class="field field--narrow">
-      <label>Jam yang lalu (hoursAgo)</label>
-      <input type="number" data-field="hoursAgo" min="0" step="1" placeholder="2">
-    </div>
+    <!-- hoursAgo teknis: disembunyikan dari mempelai; nilainya tetap terjaga
+         dari data lama (lihat collectWishes di admin.js). -->
+    <input type="hidden" data-field="hoursAgo">
   </div>
 </template>
 
