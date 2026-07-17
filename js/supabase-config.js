@@ -27,5 +27,5 @@
    ================================================================ */
 window.SUPABASE = {
   url: 'https://wcqhbikhdmfgeokdaihk.supabase.co',
-  anonKey: 'PLACEHOLDER_PUBLISHABLE_KEY'
+  anonKey: 'sb_publishable_2gfUCBOrzVLeR4vpldA8uw_uOZoaqQC'
 };
