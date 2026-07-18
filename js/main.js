@@ -241,6 +241,28 @@
     $$('.js-calendar').forEach(function (a) { a.setAttribute('href', url); });
   })();
 
+  /* ================== Teks running (marquee) dari CONFIG ==================
+     Sebelumnya nama & tanggal di-hardcode sehingga tidak ikut berubah saat
+     data diedit. Kini dibangun dari CONFIG (nama panggilan + tanggal). */
+  (function buildMarquee() {
+    var els = $$('.js-marquee');
+    if (!els.length) return;
+    var g = (CONFIG.groom && CONFIG.groom.shortName) || '';
+    var b = (CONFIG.bride && CONFIG.bride.shortName) || '';
+    var d = (CONFIG.date && CONFIG.date.display) || '';
+    var couple = (g && b) ? (g + ' & ' + b) : (g || b);
+    var parts = [];
+    if (couple) parts.push(couple);
+    if (d) parts.push(d);
+    var unit = parts.join(' — ');
+    if (!unit) return; /* tak ada data → biarkan teks bawaan */
+    /* ulangi beberapa kali agar pita tetap penuh saat bergulir */
+    var text = '';
+    for (var i = 0; i < 3; i++) text += unit + ' — ';
+    text += ' ';
+    els.forEach(function (el) { el.textContent = text; });
+  })();
+
   /* ================== FOTO & KISAH dari CONFIG (fallback aman ke ornamen) ==================
      Semua opsional: bila kosong/hilang, markup ornamen/ilustrasi bawaan dibiarkan
      apa adanya. URL gambar selalu disanitasi (safeImgSrc) untuk cegah XSS. */
