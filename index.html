@@ -23,7 +23,7 @@
   svg.draw .orn-fill { opacity: 1 !important; }
   .timeline-spine { transform: none !important; }
   .story-node { transform: rotate(45deg) scale(1) !important; }
-  .music-btn, .music-eq { display: none !important; }
+  .music-btn, .music-eq, .music-vol { display: none !important; }
 </style>
 </noscript>
 </head>
@@ -137,6 +137,10 @@
   <symbol id="ic-envelope" viewBox="0 0 20 20">
     <rect x="2" y="4.5" width="16" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
     <path d="M2.5 6 L10 11.5 L17.5 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  </symbol>
+  <symbol id="ic-vol" viewBox="0 0 20 20">
+    <path d="M3 8 H6 L10.5 4 V16 L6 12 H3 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <path d="M13.5 7.5 A3.5 3.5 0 0 1 13.5 12.5 M15.5 5.5 A6 6 0 0 1 15.5 14.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
   </symbol>
 
   <!-- Siluet potret -->
@@ -615,6 +619,12 @@
   <svg class="ic-note" aria-hidden="true"><use href="#ic-note"/></svg>
 </button>
 <div class="music-eq" id="musicEq" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<!-- Kontrol volume musik (tamu) -->
+<div class="music-vol" id="musicVol">
+  <svg class="music-vol-ic" aria-hidden="true"><use href="#ic-vol"/></svg>
+  <input type="range" class="music-vol-range" id="musicVolRange" min="0" max="100" step="1" value="70" aria-label="Volume musik">
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

@@ -67,6 +67,15 @@
     if (/^data:image\/(png|jpe?g|gif|webp|avif|svg\+xml);/i.test(s)) return s;
     return '';
   }
+  /* Whitelist khusus untuk <audio src> / new Audio(): hanya http/https &
+     data:audio/* (blokir javascript:, data:text/html, tel:). Kembalikan ''
+     bila tidak aman -> renderer memakai nada ambient generatif bawaan. */
+  function safeAudioSrc(url) {
+    var s = String(url == null ? '' : url).trim();
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^data:audio\//i.test(s)) return s;
+    return '';
+  }
   /* Escape nilai URL agar aman disisipkan ke dalam CSS url("...") */
   function cssUrl(s) {
     return String(s).replace(/[\\"]/g, function (c) { return '\\' + c; })
@@ -463,6 +472,37 @@
   var guestName = getGuestName();
   $$('.js-guest').forEach(function (el) { el.textContent = guestName; });
 
+  /* ================== Musik latar — lagu custom ATAU nada generatif ==================
+     Bila CONFIG.music.url valid (safeAudioSrc) -> putar lagu itu via
+     HTMLAudioElement (loop). Bila kosong/invalid/gagal-load -> pakai nada
+     ambient generatif WebAudio bawaan. Akses config defensif (undangan lama
+     tanpa 'music' tetap jalan). Volume tamu disimpan di localStorage. */
+  var MUSIC = (CONFIG && CONFIG.music && typeof CONFIG.music === 'object') ? CONFIG.music : {};
+  var musicSrc = safeAudioSrc(MUSIC.url);        /* '' => mode ambient generatif */
+  var musicAutoplay = MUSIC.autoplay !== false;  /* default true */
+  var VOL_KEY = 'wedding_music_volume';
+  var AMBIENT_BASE = 0.055;                       /* gain ambient penuh (volume 100%) */
+
+  function clampVol(v, dflt) {
+    var n = Math.round(Number(v));
+    if (!isFinite(n)) return dflt;
+    return n < 0 ? 0 : (n > 100 ? 100 : n);
+  }
+  /* Volume default dari CONFIG, di-override preferensi tamu (localStorage). */
+  var guestVolume = clampVol(MUSIC.volume, 70);
+  try {
+    var savedVol = window.localStorage.getItem(VOL_KEY);
+    if (savedVol !== null) guestVolume = clampVol(savedVol, guestVolume);
+  } catch (e) { /* mode privat */ }
+  function currentVol01() { return guestVolume / 100; }
+
+  var musicMode = musicSrc ? 'file' : 'ambient';
+  var audioEl = null;   /* HTMLAudioElement (mode file) */
+  /* true bila pengguna menekan tombol musik untuk MEMUTAR (bukan sekadar init).
+     Dipakai agar, saat lagu custom gagal-load, fallback ke nada generatif terjadi
+     dalam SATU tekanan (bukan tombol pertama "termakan" percobaan file gagal). */
+  var userWantsPlay = false;
+
   /* ================== Musik generatif (WebAudio API) ================== */
   var audio = { ctx: null, master: null, running: false, timer: null, nextTime: 0, step: 0, failed: false };
   var SCALE = [440.0, 493.88, 554.37, 659.25, 739.99]; /* A mayor pentatonik */
@@ -507,7 +547,7 @@
       var ctx = new AC();
       var master = ctx.createGain();
       master.gain.setValueAtTime(0.0001, ctx.currentTime);
-      master.gain.linearRampToValueAtTime(0.055, ctx.currentTime + 2.5);
+      master.gain.linearRampToValueAtTime(Math.max(0.0001, AMBIENT_BASE * currentVol01()), ctx.currentTime + 2.5);
       master.connect(ctx.destination);
 
       /* Pad ambient: dua osilator rendah + lowpass + LFO pelan */
@@ -559,7 +599,9 @@
 
   var musicBtn = $('musicBtn');
   var musicEq = $('musicEq');
+  var musicPlaying = false;   /* status UI aktif; dipakai tombol toggle & fallback */
   function setMusicUI(on) {
+    musicPlaying = !!on;
     if (musicBtn) {
       musicBtn.classList.toggle('playing', on);
       musicBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -567,7 +609,80 @@
     }
     if (musicEq) musicEq.classList.toggle('on', on);
   }
+
+  /* Terapkan volume ke sumber aktif (audio-file: audioEl.volume; generatif:
+     skala master gain terhadap AMBIENT_BASE). Dipanggil live saat slider digeser. */
+  function applyVolume() {
+    if (musicMode === 'file' && audioEl) {
+      try { audioEl.volume = currentVol01(); } catch (e) { /* aman */ }
+      return;
+    }
+    if (audio.ctx && audio.master) {
+      var target = Math.max(0.0001, AMBIENT_BASE * currentVol01());
+      try {
+        var now = audio.ctx.currentTime;
+        audio.master.gain.cancelScheduledValues(now);
+        audio.master.gain.setValueAtTime(Math.max(0.0001, audio.master.gain.value), now);
+        audio.master.gain.linearRampToValueAtTime(target, now + 0.18);
+      } catch (e) {
+        try { audio.master.gain.value = target; } catch (e2) { /* aman */ }
+      }
+    }
+  }
+
+  /* Siapkan HTMLAudioElement untuk lagu custom. onerror -> fallback generatif. */
+  function initFileAudio() {
+    if (audioEl) return true;
+    if (musicMode !== 'file') return false;
+    try {
+      var el = new Audio();
+      el.loop = true;
+      el.preload = 'auto';
+      try { el.volume = currentVol01(); } catch (e) { /* aman */ }
+      el.addEventListener('error', function () {
+        /* Lagu custom gagal dimuat: alihkan ke nada generatif (atau diam). */
+        var wasPlaying = musicPlaying;
+        try { el.pause(); } catch (e2) { /* aman */ }
+        audioEl = null;
+        musicMode = 'ambient';
+        /* wasPlaying: sudah berbunyi (autoplay) -> lanjut ambient.
+           userWantsPlay: pengguna baru saja menekan tombol untuk memutar, tetapi
+           file gagal sebelum play() sempat resolve -> langsung fallback ambient di
+           tekanan yang sama (gesture pengguna sudah terjadi -> aman). */
+        if (wasPlaying || userWantsPlay) { userWantsPlay = false; startMusic(); }
+        else setMusicUI(false);
+      });
+      el.src = musicSrc;
+      audioEl = el;
+      return true;
+    } catch (e) {
+      musicMode = 'ambient';
+      return false;
+    }
+  }
+
+  /* startMusic/stopMusic mengarah ke SUMBER AKTIF (audio-file ATAU generatif). */
   function startMusic() {
+    if (musicMode === 'file') {
+      if (initFileAudio() && audioEl) {
+        applyVolume();
+        var el = audioEl;
+        var pf = el.play();
+        if (pf && typeof pf.then === 'function') {
+          /* Guard audioEl===el: bila 'error' sudah mengalihkan ke ambient (audioEl
+             di-null-kan lalu startMusic ambient jalan), promise usang dari elemen
+             file lama tidak boleh meng-clobber UI. */
+          pf.then(function () { if (audioEl === el) setMusicUI(true); }, function () {
+            /* play() ditolak kebijakan autoplay: diam, biarkan tombol utk mulai manual */
+            if (audioEl === el) setMusicUI(false);
+          });
+        } else {
+          setMusicUI(true);
+        }
+        return;
+      }
+      /* initFileAudio gagal sinkron -> jatuh ke jalur ambient di bawah */
+    }
     if (!initAudio()) return;
     var p = audio.ctx.resume();
     if (p && typeof p.catch === 'function') p.catch(function () {});
@@ -576,6 +691,9 @@
     setMusicUI(true);
   }
   function stopMusic() {
+    if (musicMode === 'file' && audioEl) {
+      try { audioEl.pause(); } catch (e) { /* aman */ }
+    }
     if (audio.ctx) {
       var p = audio.ctx.suspend();
       if (p && typeof p.catch === 'function') p.catch(function () {});
@@ -585,7 +703,22 @@
   }
   if (musicBtn) {
     musicBtn.addEventListener('click', function () {
-      if (audio.running) stopMusic(); else startMusic();
+      if (musicPlaying) { userWantsPlay = false; stopMusic(); }
+      else { userWantsPlay = true; startMusic(); }
+    });
+  }
+
+  /* Kontrol volume tamu — slider aksesibel dekat tombol musik. Perubahan
+     live + disimpan ke localStorage agar tetap saat tamu kembali. */
+  var musicVol = $('musicVolRange');
+  if (musicVol) {
+    musicVol.value = String(guestVolume);
+    musicVol.setAttribute('aria-valuetext', guestVolume + ' persen');
+    musicVol.addEventListener('input', function () {
+      guestVolume = clampVol(musicVol.value, guestVolume);
+      musicVol.setAttribute('aria-valuetext', guestVolume + ' persen');
+      try { window.localStorage.setItem(VOL_KEY, String(guestVolume)); } catch (e) { /* mode privat */ }
+      applyVolume();
     });
   }
 
@@ -632,8 +765,10 @@
     document.body.classList.remove('is-locked');
     document.body.classList.add('is-opened');
     window.scrollTo(0, 0);
-    /* gesture pengguna = klik ini; hormati prefers-reduced-motion */
-    if (!prefersReduced) startMusic();
+    /* gesture pengguna = klik ini; hormati autoplay config & prefers-reduced-motion.
+       Pemutaran bersuara hanya di sini (dalam handler gesture) agar tak diblokir
+       kebijakan autoplay browser; prefers-reduced-motion menang atas autoplay:true. */
+    if (musicAutoplay && !prefersReduced) { userWantsPlay = true; startMusic(); }
     window.setTimeout(function () {
       if (cover) {
         cover.style.display = 'none';

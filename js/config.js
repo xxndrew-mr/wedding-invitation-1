@@ -55,6 +55,20 @@ window.WEDDING_CONFIG = {
     bride: '',      /* potret mempelai wanita (opsional) */
     gallery: []     /* daftar URL foto galeri; kosong = pakai ornamen */
   },
+  /* MUSIK LATAR — kontrol audio undangan.
+       url      : URL lagu custom (mp3/audio) hasil upload ke Storage
+                  bucket 'photos' (folder 'musik/') atau URL audio mana pun.
+                  Kosong = pakai NADA AMBIENT generatif bawaan (fallback aman).
+       volume   : 0-100 (persen) volume default.
+       autoplay : true = putar otomatis saat "Buka Undangan". TETAP dihormati
+                  prefers-reduced-motion & hanya bersuara setelah gesture klik.
+     Undangan lama tanpa field ini tetap jalan: renderer harus akses defensif.
+     URL wajib disanitasi (safeAudioSrc: izinkan http/https & data:audio). */
+  music: {
+    url: '',
+    volume: 70,
+    autoplay: true
+  },
   /* KISAH — "Empat Bab Perjalanan". Dipindahkan verbatim dari markup
      hardcode di index.html (section No. VI). Setiap item:
        { year: label tahun+bab, title: judul bab, text: narasi }.

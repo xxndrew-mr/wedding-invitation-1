@@ -49,6 +49,16 @@
     return '';
   }
 
+  /* Whitelist URL untuk <audio src> pratinjau: hanya http/https & data:audio.
+     Sejajar dengan renderer (safeAudioSrc di main.js). '' => tanpa pratinjau,
+     renderer jatuh ke nada ambient bawaan. */
+  function safeAudioSrc(url) {
+    var s = String(url == null ? '' : url).trim();
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^data:audio\//i.test(s)) return s;
+    return '';
+  }
+
   function setPath(obj, path, value) {
     var keys = path.split('.');
     var cur = obj;
@@ -292,6 +302,8 @@
     fillPhotoSlots(photos);
     renderGallery(Array.isArray(photos.gallery) ? photos.gallery : []);
     renderStory(Array.isArray(cfg.story) ? cfg.story : []);
+    /* musik latar (opsional; defensif untuk undangan lama tanpa field ini) */
+    fillMusic(isObj(cfg.music) ? cfg.music : {});
     updateBranding();
   }
 
@@ -671,6 +683,109 @@
   if ($('addStoryBtn')) $('addStoryBtn').addEventListener('click', function () { addStoryRow({}); });
 
   /* ================================================================
+     MUSIK LATAR — url + volume + autoplay
+     ----------------------------------------------------------------
+     url kosong => renderer memakai nada ambient generatif bawaan.
+     Pratinjau <audio> memakai URL yang sudah disaring safeAudioSrc.
+     Unggah lewat CloudAPI.uploadAudio (bucket publik, folder 'musik').
+     ================================================================ */
+  var musicUrl = $('musicUrl');
+  var musicFile = $('musicFile');
+  var musicVolume = $('musicVolume');
+  var musicVolumeVal = $('musicVolumeVal');
+  var musicAutoplay = $('musicAutoplay');
+  var musicSlot = document.querySelector('[data-music-slot]');
+  var musicUploadBtn = musicSlot && musicSlot.querySelector('[data-music-upload]');
+  var musicStatus = musicSlot && musicSlot.querySelector('[data-music-status]');
+  var musicPreview = musicSlot && musicSlot.querySelector('[data-music-preview]');
+
+  /* Perbarui <audio> pratinjau dari URL, disaring safeAudioSrc (anti-XSS).
+     Selalu lewat .src. '' => sembunyikan & hentikan pemutar. */
+  function updateMusicPreview() {
+    if (!musicPreview) return;
+    var src = safeAudioSrc(musicUrl ? musicUrl.value : '');
+    if (src) {
+      musicPreview.src = src;
+      musicPreview.hidden = false;
+    } else {
+      try { musicPreview.pause(); } catch (e) {}
+      musicPreview.removeAttribute('src');
+      try { musicPreview.load(); } catch (e) {}
+      musicPreview.hidden = true;
+    }
+  }
+
+  /* Angka persen live di samping slider (0-100). */
+  function updateMusicVolumeLabel() {
+    if (!musicVolume) return;
+    var v = clampInt(musicVolume.value, 0, 100, 70);
+    if (musicVolumeVal) musicVolumeVal.textContent = v + '%';
+    musicVolume.setAttribute('aria-valuetext', v + '%');
+  }
+
+  /* Pesan ramah (non-teknis) untuk tiap kode error uploadAudio. */
+  function musicErrorMessage(r) {
+    var err = (r && r.error) || 'unexpected';
+    switch (err) {
+      case 'cloud-off': return 'Penyimpanan online belum aktif.';
+      case 'no-file': return 'Berkas tidak terbaca. Coba pilih ulang.';
+      case 'not-an-audio': return 'Berkas harus berupa lagu/audio (MP3, M4A, OGG, dsb.).';
+      case 'too-large':
+        var mb = Math.round(((r && r.maxBytes) || 12 * MB) / MB);
+        return 'Ukuran lagu melebihi ' + mb + ' MB. Perkecil atau pilih berkas lain.';
+      case 'empty-file': return 'Berkas kosong. Coba pilih lagu lain.';
+      case 'not-authenticated': return 'Sesi Anda berakhir. Masuk lagi untuk mengunggah.';
+      case 'upload-failed': return 'Penyimpanan lagu belum aktif. Hubungi teknisi yang menyiapkan undangan ini untuk mengaktifkannya.';
+      case 'network': return 'Gagal terhubung. Periksa internet Anda lalu coba lagi.';
+      default: return 'Gagal mengunggah lagu. Coba lagi sebentar.';
+    }
+  }
+
+  /* Unggah 1 berkas audio; isi URL + pratinjau bila sukses. Tidak pernah crash. */
+  function runMusicUpload(file) {
+    setPhotoStatus(musicStatus, 'Mengunggah…', null);
+    if (musicUploadBtn) musicUploadBtn.disabled = true;
+    return API.uploadAudio(file, { folder: 'musik' }).then(function (r) {
+      if (musicUploadBtn) musicUploadBtn.disabled = false;
+      if (r && r.ok) {
+        if (musicUrl) musicUrl.value = r.url;
+        updateMusicPreview();
+        setPhotoStatus(musicStatus, 'Lagu berhasil diunggah.', 'ok');
+      } else {
+        setPhotoStatus(musicStatus, musicErrorMessage(r), 'error');
+        if (r && r.error === 'not-authenticated') {
+          showStatus('Sesi Anda telah berakhir. Silakan masuk kembali.', 'error');
+        }
+      }
+    }, function () {
+      if (musicUploadBtn) musicUploadBtn.disabled = false;
+      setPhotoStatus(musicStatus, 'Gagal mengunggah lagu. Coba lagi.', 'error');
+    });
+  }
+
+  /* Isi field musik dari config (defensif untuk undangan lama tanpa 'music'). */
+  function fillMusic(m) {
+    m = isObj(m) ? m : {};
+    if (musicUrl) musicUrl.value = m.url || '';
+    if (musicVolume) musicVolume.value = clampInt(m.volume, 0, 100, 70);
+    if (musicAutoplay) musicAutoplay.checked = (m.autoplay !== false); /* default true */
+    setPhotoStatus(musicStatus, '', null);
+    updateMusicVolumeLabel();
+    updateMusicPreview();
+  }
+
+  if (musicUrl) musicUrl.addEventListener('input', updateMusicPreview);
+  if (musicVolume) musicVolume.addEventListener('input', updateMusicVolumeLabel);
+  if (musicUploadBtn && musicFile) {
+    musicUploadBtn.addEventListener('click', function () { musicFile.click(); });
+    musicFile.addEventListener('change', function () {
+      var file = musicFile.files && musicFile.files[0];
+      musicFile.value = ''; /* reset agar berkas sama bisa dipilih ulang */
+      if (file) runMusicUpload(file);
+    });
+  }
+
+  /* ================================================================
      RAKIT CONFIG dari form (clone base + timpa field form)
      ================================================================ */
   function collectConfig() {
@@ -711,6 +826,13 @@
     cfg.photos = photos;
     /* kisah: array bab dari form (bab kosong dibuang). */
     cfg.story = collectStory();
+    /* musik: clone base.music agar field tak dikenal terjaga, lalu timpa
+       url/volume/autoplay. Field lain (bila ada) tetap dipertahankan. */
+    var music = isObj(cfg.music) ? cfg.music : {};
+    music.url = musicUrl ? musicUrl.value.trim() : (music.url || '');
+    music.volume = clampInt(musicVolume ? musicVolume.value : music.volume, 0, 100, 70);
+    music.autoplay = musicAutoplay ? !!musicAutoplay.checked : (music.autoplay !== false);
+    cfg.music = music;
     return cfg;
   }
 

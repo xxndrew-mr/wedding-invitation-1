@@ -344,6 +344,40 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
 .photo-slot__status--ok { color: var(--ok); }
 .photo-slot__status--error { color: var(--danger); }
 
+/* ============ MUSIK LATAR ============ */
+.music-preview {
+  width: 100%; margin-top: 14px; display: block;
+  border-radius: 9px;
+}
+.music-volume__row { display: flex; align-items: center; gap: 14px; }
+.music-volume__row input[type="range"] {
+  flex: 1 1 auto; width: auto; min-width: 0; min-height: 44px;
+  padding: 0; margin: 0; background: transparent; border: none;
+  accent-color: var(--gold); cursor: pointer;
+}
+.music-volume__row input[type="range"]:focus {
+  outline: 2px solid var(--gold); outline-offset: 4px; background: transparent;
+}
+.music-volume__val {
+  flex: 0 0 auto; min-width: 54px; text-align: right;
+  font-family: 'Archivo', sans-serif; font-variant-numeric: tabular-nums;
+  font-size: 15px; font-weight: 500; color: var(--gold);
+}
+/* Baris checkbox autoplay: tap target >=44px, teks kalimat biasa (bukan label
+   kapital seperti .field label), input & teks tersambung lewat for/id. */
+.music-autoplay { margin-top: 4px; }
+.check {
+  display: flex; align-items: flex-start; gap: 12px;
+  min-height: 44px; padding: 4px 0; margin: 0; cursor: pointer;
+  font-family: 'Archivo', Arial, sans-serif; font-weight: 300; font-size: 15px;
+  letter-spacing: normal; text-transform: none; color: var(--ink);
+}
+.check input[type="checkbox"] {
+  flex: 0 0 auto; width: 22px; height: 22px; min-height: 22px;
+  margin: 1px 0 0; accent-color: var(--gold); cursor: pointer;
+}
+.check span { line-height: 1.5; }
+
 /* ============ RSVP SUMMARY ============ */
 .summary {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;

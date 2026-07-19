@@ -939,6 +939,74 @@ body.is-opened .music-eq.on { display: flex; }
 .music-eq span:nth-child(3) { height: 60%; animation-delay: 0.4s; }
 @keyframes eq { from { transform: scaleY(0.4); } to { transform: scaleY(1); } }
 
+/* Kontrol volume tamu — pil kecil di atas tombol musik */
+.music-vol {
+  position: fixed;
+  right: 20px;
+  bottom: 82px;
+  width: 52px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--gold);
+  box-shadow: 0 10px 26px -10px rgba(0,0,0,0.7);
+  z-index: 80;
+}
+body.is-opened .music-vol { display: flex; }
+/* Ikon speaker penanda bahwa pil ini pengatur volume (bukan ornamen) */
+.music-vol-ic {
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+  flex: none;
+}
+.music-vol-range {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl; /* bawah = min, atas = maks */
+  width: 24px;
+  height: 76px;
+  margin: 0;
+  background: transparent;
+  accent-color: var(--gold);
+  cursor: pointer;
+  touch-action: none;
+}
+.music-vol-range:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+/* Track & thumb konsisten lintas-browser (WebKit) */
+.music-vol-range::-webkit-slider-runnable-track {
+  width: 4px;
+  border-radius: 2px;
+  background: rgba(212,184,114,0.30);
+}
+.music-vol-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid var(--surface);
+}
+.music-vol-range::-moz-range-track {
+  width: 4px;
+  border-radius: 2px;
+  background: rgba(212,184,114,0.30);
+}
+.music-vol-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--gold);
+}
+
 /* ============ REVEAL & DRAW ============ */
 .reveal {
   opacity: 0;

@@ -288,6 +288,45 @@
           <button type="button" id="addGalleryBtn" class="btn btn--dashed btn--block">+ Tambah foto</button>
         </fieldset>
 
+        <!-- MUSIK LATAR -->
+        <fieldset class="card">
+          <legend class="card__title">Musik Latar <span class="card__tag">Opsional</span></legend>
+          <p class="field-help">Musik lembut yang diputar saat tamu membuka undangan. Bila dikosongkan, undangan memakai nada instrumen lembut bawaan. Disarankan berkas MP3 dengan ukuran wajar (maks. 12 MB) agar cepat dimuat. Lagu tersimpan online setelah Anda menekan Simpan Perubahan.</p>
+
+          <div class="music-slot" data-music-slot>
+            <div class="field">
+              <label for="musicUrl">Tautan lagu</label>
+              <input type="url" id="musicUrl" data-music-url placeholder="https://… atau tekan Unggah Lagu">
+            </div>
+            <div class="photo-slot__actions">
+              <button type="button" class="btn btn--ghost btn--sm" data-music-upload>Unggah Lagu</button>
+              <input type="file" accept="audio/*" id="musicFile" data-music-input hidden tabindex="-1" aria-hidden="true">
+              <span class="photo-slot__status" data-music-status role="status" aria-live="polite"></span>
+            </div>
+            <audio class="music-preview" data-music-preview controls preload="none" hidden>
+              Peramban Anda tidak mendukung pemutar audio.
+            </audio>
+          </div>
+
+          <div class="field">
+            <label for="musicVolume">Volume musik</label>
+            <div class="music-volume__row">
+              <input type="range" id="musicVolume" min="0" max="100" step="1" value="70"
+                     aria-describedby="musicVolumeVal" aria-valuetext="70%">
+              <output class="music-volume__val" id="musicVolumeVal" for="musicVolume">70%</output>
+            </div>
+            <p class="field-help">Ini volume awal saat undangan dibuka tamu; tamu tetap bisa mengaturnya sendiri. Pengaturan ini tidak memengaruhi pemutar pratinjau audio di atas (pratinjau memakai volume perangkat Anda).</p>
+          </div>
+
+          <div class="music-autoplay">
+            <label class="check" for="musicAutoplay">
+              <input type="checkbox" id="musicAutoplay" checked>
+              <span>Putar musik otomatis saat undangan dibuka</span>
+            </label>
+            <p class="field-help">Bila dimatikan, tamu tetap bisa memutar musik sendiri lewat tombol musik di undangan. Perangkat yang mengaktifkan mode "kurangi gerakan/animasi" tetap tidak memutar otomatis demi kenyamanan.</p>
+          </div>
+        </fieldset>
+
         <!-- KISAH / PERJALANAN (array) -->
         <fieldset class="card">
           <legend class="card__title">Kisah / Perjalanan</legend>
