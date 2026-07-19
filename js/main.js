@@ -515,6 +515,11 @@
 
   var musicMode = musicSrc ? 'file' : 'ambient';
   var audioEl = null;   /* HTMLAudioElement (mode file) */
+  /* Graph WebAudio untuk mode file: WAJIB agar volume bisa diatur di iOS Safari,
+     yang menjadikan HTMLMediaElement.volume READ-ONLY (hanya tombol hardware).
+     Audio dirute source->gain->destination, volume dikontrol lewat gain. */
+  var fileCtx = null, fileGain = null, fileSrcNode = null;
+  var fileNoCors = false; /* true bila host lagu tak mengirim header CORS -> tak bisa dirute WebAudio */
   /* true bila pengguna menekan tombol musik untuk MEMUTAR (bukan sekadar init).
      Dipakai agar, saat lagu custom gagal-load, fallback ke nada generatif terjadi
      dalam SATU tekanan (bukan tombol pertama "termakan" percobaan file gagal). */
@@ -631,7 +636,15 @@
      skala master gain terhadap AMBIENT_BASE). Dipanggil live saat slider digeser. */
   function applyVolume() {
     if (musicMode === 'file' && audioEl) {
-      try { audioEl.volume = currentVol01(); } catch (e) { /* aman */ }
+      /* Bila audio dirute lewat GainNode (fix iOS): kontrol volume via gain dan
+         biarkan elemen pada volume penuh (agar tidak teredam ganda). Bila tidak
+         (host tanpa CORS/WebAudio gagal): pakai audioEl.volume (Android/desktop). */
+      if (fileGain) {
+        try { fileGain.gain.value = currentVol01(); } catch (e) { /* aman */ }
+        try { audioEl.volume = 1; } catch (e2) { /* aman */ }
+      } else {
+        try { audioEl.volume = currentVol01(); } catch (e) { /* aman */ }
+      }
       return;
     }
     if (audio.ctx && audio.master) {
@@ -647,7 +660,40 @@
     }
   }
 
-  /* Siapkan HTMLAudioElement untuk lagu custom. onerror -> fallback generatif. */
+  /* Bangun graph WebAudio (source->gain->destination) untuk elemen audio agar
+     volume dapat diatur di iOS. Butuh CORS: elemen di-crossOrigin='anonymous' &
+     server (Supabase Storage) mengirim header CORS. Bila fileNoCors (host tanpa
+     CORS), JANGAN dirute (routing WebAudio lintas-origin tanpa CORS = bisu) —
+     kembalikan false agar dipakai audioEl.volume. */
+  function ensureFileGain(el) {
+    if (fileGain) return true;
+    if (fileNoCors || !el) return false;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      if (!fileCtx) fileCtx = new AC();
+      fileSrcNode = fileCtx.createMediaElementSource(el);
+      fileGain = fileCtx.createGain();
+      fileGain.gain.value = currentVol01();
+      fileSrcNode.connect(fileGain);
+      fileGain.connect(fileCtx.destination);
+      try { el.volume = 1; } catch (e2) { /* gain yang mengatur volume */ }
+      return true;
+    } catch (e) {
+      /* Graph gagal dibangun: tutup context agar tidak ada AudioContext yatim
+         (iOS membatasi jumlah context). closeFileCtx juga null-kan gain/src. */
+      closeFileCtx();
+      return false;
+    }
+  }
+  function closeFileCtx() {
+    if (fileCtx) { try { fileCtx.close(); } catch (e) { /* aman */ } }
+    fileCtx = null; fileGain = null; fileSrcNode = null;
+  }
+
+  /* Siapkan HTMLAudioElement untuk lagu custom. onerror -> retry tanpa CORS lalu
+     fallback generatif. crossOrigin diperlukan agar routing WebAudio (kontrol
+     volume iOS) tidak menghasilkan audio bisu untuk sumber lintas-origin. */
   function initFileAudio() {
     if (audioEl) return true;
     if (musicMode !== 'file') return false;
@@ -655,18 +701,31 @@
       var el = new Audio();
       el.loop = true;
       el.preload = 'auto';
+      if (!fileNoCors) { try { el.crossOrigin = 'anonymous'; } catch (e0) { /* aman */ } }
       try { el.volume = currentVol01(); } catch (e) { /* aman */ }
       el.addEventListener('error', function () {
-        /* Lagu custom gagal dimuat: alihkan ke nada generatif (atau diam). */
-        var wasPlaying = musicPlaying;
+        var wasPlaying = musicPlaying || userWantsPlay;
         try { el.pause(); } catch (e2) { /* aman */ }
+        /* Percobaan pertama gagal & crossOrigin aktif: host mungkin tak mengirim
+           CORS. Coba SEKALI lagi tanpa crossOrigin agar lagu tetap berbunyi
+           (volume lewat .volume; iOS tak bisa atur volume tapi minimal terdengar). */
+        if (!fileNoCors && el.crossOrigin) {
+          fileNoCors = true;
+          closeFileCtx();
+          audioEl = null;
+          /* JANGAN hapus userWantsPlay di sini: bila percobaan no-CORS JUGA gagal
+             (file benar-benar hilang/404), handler 'error' kedua butuh intent ini
+             agar fallback generatif tetap berbunyi dalam satu tekanan. startMusic
+             tidak membaca userWantsPlay, jadi mempertahankannya aman. */
+          if (wasPlaying) startMusic();
+          else setMusicUI(false);
+          return;
+        }
+        /* Gagal juga tanpa crossOrigin -> alihkan ke nada generatif bawaan. */
+        closeFileCtx();
         audioEl = null;
         musicMode = 'ambient';
-        /* wasPlaying: sudah berbunyi (autoplay) -> lanjut ambient.
-           userWantsPlay: pengguna baru saja menekan tombol untuk memutar, tetapi
-           file gagal sebelum play() sempat resolve -> langsung fallback ambient di
-           tekanan yang sama (gesture pengguna sudah terjadi -> aman). */
-        if (wasPlaying || userWantsPlay) { userWantsPlay = false; startMusic(); }
+        if (wasPlaying) { userWantsPlay = false; startMusic(); }
         else setMusicUI(false);
       });
       el.src = musicSrc;
@@ -682,8 +741,15 @@
   function startMusic() {
     if (musicMode === 'file') {
       if (initFileAudio() && audioEl) {
-        applyVolume();
         var el = audioEl;
+        /* Rute lewat GainNode agar volume bisa diatur di iOS; resume ctx (butuh
+           gesture — sudah terpenuhi lewat klik Buka Undangan / tombol musik). */
+        ensureFileGain(el);
+        if (fileCtx && fileCtx.state === 'suspended') {
+          var rp = fileCtx.resume();
+          if (rp && typeof rp.catch === 'function') rp.catch(function () {});
+        }
+        applyVolume();
         var pf = el.play();
         if (pf && typeof pf.then === 'function') {
           /* Guard audioEl===el: bila 'error' sudah mengalihkan ke ambient (audioEl
@@ -710,6 +776,12 @@
   function stopMusic() {
     if (musicMode === 'file' && audioEl) {
       try { audioEl.pause(); } catch (e) { /* aman */ }
+      /* Suspend graph audio-file agar AudioContext tak terus hidup di latar
+         (hemat baterai/resource, terutama iOS). startMusic akan resume lagi. */
+      if (fileCtx && fileCtx.state === 'running') {
+        var pf = fileCtx.suspend();
+        if (pf && typeof pf.catch === 'function') pf.catch(function () {});
+      }
     }
     if (audio.ctx) {
       var p = audio.ctx.suspend();
