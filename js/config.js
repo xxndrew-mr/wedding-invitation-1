@@ -10,7 +10,7 @@ window.WEDDING_CONFIG = {
   },
   bride: {
     name: 'Siti Aisah Wulandari',
-    shortName: 'Aisah',
+    shortName: 'Wulan',
     parents: 'Putri dari Bapak Haryanto & Ibu Ernawati'
   },
   date: {

@@ -272,6 +272,23 @@
     els.forEach(function (el) { el.textContent = text; });
   })();
 
+  /* ================== Inisial monogram & seal dari CONFIG ==================
+     Huruf di lingkaran/seal mengikuti nama panggilan (atau nama lengkap) agar
+     selalu benar meski nama diubah — bukan lagi hardcode. */
+  (function setMonogramInitials() {
+    function firstLetter(s) {
+      s = String(s == null ? '' : s).trim();
+      return s ? s.charAt(0).toUpperCase() : '';
+    }
+    var gi = firstLetter((CONFIG.groom && (CONFIG.groom.shortName || CONFIG.groom.name)));
+    var bi = firstLetter((CONFIG.bride && (CONFIG.bride.shortName || CONFIG.bride.name)));
+    if (!gi && !bi) return;
+    var mono = $('monogramText');
+    if (mono) mono.textContent = gi + ' ‧ ' + bi; /* H ‧ W */
+    var seal = $('sealText');
+    if (seal) seal.textContent = gi + '·' + bi;    /* H·W */
+  })();
+
   /* ================== FOTO & KISAH dari CONFIG (fallback aman ke ornamen) ==================
      Semua opsional: bila kosong/hilang, markup ornamen/ilustrasi bawaan dibiarkan
      apa adanya. URL gambar selalu disanitasi (safeImgSrc) untuk cegah XSS. */
