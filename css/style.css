@@ -880,11 +880,41 @@ CONFIG.rsvp.whatsapp diisi. [hidden] harus menang atas display .btn. */
 .closing-mono { width: 64px; height: 64px; color: var(--gold); margin: 34px auto 0; display: block; }
 .footer-note {
   text-align: center;
+  padding: 0 24px 110px;
+}
+/* Watermark / kredit vendor: hadirmu.id */
+.footer-brand {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  margin-bottom: 18px;
+  padding: 6px 4px;
+}
+.footer-brand-name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 400;
+  font-size: 21px;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  transition: color 0.3s ease;
+}
+.footer-brand-tag {
+  font-family: 'Archivo', Arial, sans-serif;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.footer-brand:hover .footer-brand-name,
+.footer-brand:focus-visible .footer-brand-name { color: var(--ink); }
+.footer-made {
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 0 24px 110px;
 }
 
 /* ============ MUSIC BUTTON ============ */

@@ -481,6 +481,26 @@ code { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-siz
   padding: 24px 20px 40px; text-align: center;
 }
 .foot p { font-size: 11.5px; letter-spacing: 0.1em; color: var(--muted); }
+/* Watermark / kredit vendor: hadirmu.id */
+.foot-brand-line { margin-bottom: 6px; }
+.foot-brand {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 400;
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  color: var(--gold);
+  text-decoration: none;
+}
+.foot-brand:hover, .foot-brand:focus-visible { color: var(--ink); text-decoration: underline; }
+.login__vendor {
+  margin-top: 18px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-align: center;
+}
+.login__vendor a { color: var(--gold); text-decoration: none; font-weight: 500; }
+.login__vendor a:hover, .login__vendor a:focus-visible { color: var(--ink); text-decoration: underline; }
 
 /* ============ REDUCED MOTION ============ */
 @media (prefers-reduced-motion: reduce) {
